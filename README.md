@@ -1,36 +1,58 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Arena Duel
 
-## Getting Started
+Sistema Next.js para duelos 1v1 D&D 5.5 com persistência local em arquivos JSON.
 
-First, run the development server:
+## Funcionalidades
+
+- **Ranking público** — histórico, pontuação e win rate por classe
+- **Admin** — cadastro de juízes (`admin` / `admin123` no primeiro acesso)
+- **Juiz** — gera link do duelo, jogadores se inscrevem, juiz registra resultado
+- **Backend** — API Routes + arquivos em `data/`
+
+## Stack
+
+- Next.js 16 (App Router)
+- TypeScript, Tailwind CSS
+- Persistência: `data/users.json`, `data/duels.json`
+- Arquitetura: Factory pattern, repositórios por arquivo, serviços de aplicação
+- Qualidade: ESLint, Prettier (+ plugin Tailwind), Vitest, Husky
+
+## Desenvolvimento
 
 ```bash
+cd arena-duel
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Acesse [http://localhost:3000](http://localhost:3000)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Comando          | Descrição                   |
+| ---------------- | --------------------------- |
+| `npm run dev`    | Servidor de desenvolvimento |
+| `npm run build`  | Build de produção           |
+| `npm run lint`   | ESLint                      |
+| `npm run format` | Prettier                    |
+| `npm run test`   | Vitest                      |
 
-## Learn More
+## Fluxo
 
-To learn more about Next.js, take a look at the following resources:
+1. Admin entra e cadastra juízes em `/admin`
+2. Juiz entra em `/judge` e gera link do duelo
+3. Jogadores abrem `/duel/[token]` e preenchem nome/classe
+4. Juiz registra arena e resultado em `/judge/duel/[id]`
+5. Ranking atualiza automaticamente na home
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Dados locais
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Usuários e duelos ficam em `data/`. Para resetar, esvazie os JSONs (mantendo `[]`).
 
-## Deploy on Vercel
+Altere senha do admin editando `data/users.json` ou recrie o arquivo.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Variáveis
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```env
+AUTH_SECRET=sua-chave-secreta
+```
