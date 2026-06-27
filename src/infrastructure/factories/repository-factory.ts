@@ -1,19 +1,35 @@
 import path from 'path';
 import type { IDuelRepository, IUserRepository } from '@/domain/repositories';
+import { isPostgresEnabled, resetDbClientForTests } from '@/infrastructure/persistence/db';
 import { DuelFileRepository } from '@/infrastructure/persistence/repositories/duel-file-repository';
+import { DuelPostgresRepository } from '@/infrastructure/persistence/repositories/duel-postgres-repository';
 import { UserFileRepository } from '@/infrastructure/persistence/repositories/user-file-repository';
+import { UserPostgresRepository } from '@/infrastructure/persistence/repositories/user-postgres-repository';
 import { FileStore } from '@/infrastructure/persistence/file-store';
 
 export class RepositoryFactory {
   private static instance: RepositoryFactory | null = null;
 
-  private readonly fileStore: FileStore;
+  private readonly fileStore: FileStore | null;
+  private readonly usePostgres: boolean;
   private userRepository: IUserRepository | null = null;
   private duelRepository: IDuelRepository | null = null;
 
   private constructor(dataDir?: string) {
-    const baseDir = dataDir ?? path.join(process.cwd(), 'data');
-    this.fileStore = new FileStore(baseDir);
+    if (dataDir) {
+      this.fileStore = new FileStore(dataDir);
+      this.usePostgres = false;
+      return;
+    }
+
+    if (isPostgresEnabled()) {
+      this.fileStore = null;
+      this.usePostgres = true;
+      return;
+    }
+
+    this.fileStore = new FileStore(path.join(process.cwd(), 'data'));
+    this.usePostgres = false;
   }
 
   static create(dataDir?: string): RepositoryFactory {
@@ -25,18 +41,23 @@ export class RepositoryFactory {
 
   static reset(): void {
     RepositoryFactory.instance = null;
+    resetDbClientForTests();
   }
 
   getUserRepository(): IUserRepository {
     if (!this.userRepository) {
-      this.userRepository = new UserFileRepository(this.fileStore);
+      this.userRepository = this.usePostgres
+        ? new UserPostgresRepository()
+        : new UserFileRepository(this.fileStore!);
     }
     return this.userRepository;
   }
 
   getDuelRepository(): IDuelRepository {
     if (!this.duelRepository) {
-      this.duelRepository = new DuelFileRepository(this.fileStore);
+      this.duelRepository = this.usePostgres
+        ? new DuelPostgresRepository()
+        : new DuelFileRepository(this.fileStore!);
     }
     return this.duelRepository;
   }
