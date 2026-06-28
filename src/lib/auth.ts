@@ -2,7 +2,7 @@ import { cookies } from 'next/headers';
 import type { SessionPayload, UserRole } from '@/domain/entities';
 import { verifySessionToken } from '@/infrastructure/auth/session-token';
 import { SESSION_COOKIE } from '@/shared/constants/game-rules';
-import { hasAnyRole } from '@/shared/utils/roles';
+import { hasAnyRole, normalizeRoles } from '@/shared/utils/roles';
 
 export async function getSession(): Promise<SessionPayload | null> {
   const cookieStore = await cookies();
@@ -14,9 +14,7 @@ export async function getSession(): Promise<SessionPayload | null> {
 
   return {
     ...session,
-    roles: session.roles ?? (session as SessionPayload & { role?: UserRole }).role
-      ? [(session as SessionPayload & { role?: UserRole }).role!]
-      : ['player'],
+    roles: normalizeRoles(session.roles ?? (session as SessionPayload & { role?: UserRole }).role),
   };
 }
 

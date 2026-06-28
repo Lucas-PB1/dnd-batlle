@@ -36,6 +36,7 @@ async function ensureSchema(): Promise<void> {
 
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT`;
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS roles JSONB`;
+  await sql`ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check`;
   await sql`
     UPDATE users
     SET roles = to_jsonb(ARRAY[role])

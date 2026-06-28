@@ -1,8 +1,9 @@
 import { randomUUID } from 'crypto';
 import bcrypt from 'bcryptjs';
 import type { IUserRepository } from '@/domain/repositories';
-import type { SessionPayload, User } from '@/domain/entities';
+import type { SessionPayload, User, UserRole } from '@/domain/entities';
 import { createSessionToken } from '@/infrastructure/auth/session-token';
+import { normalizeRoles } from '@/shared/utils/roles';
 
 export interface RegisterInput {
   email: string;
@@ -10,24 +11,44 @@ export interface RegisterInput {
   displayName: string;
 }
 
+const DEFAULT_ADMIN_EMAIL = 'admin@arena.local';
+const DEFAULT_ADMIN_USERNAME = 'admin';
+
 export class AuthService {
   constructor(private readonly userRepository: IUserRepository) {}
 
   async ensureDefaultAdmin(): Promise<void> {
     const users = await this.userRepository.findAll();
-    if (users.length > 0) return;
+    const admin =
+      users.find((user) => user.roles.includes('admin')) ??
+      users.find((user) => user.username === DEFAULT_ADMIN_USERNAME) ??
+      users.find((user) => user.email === DEFAULT_ADMIN_EMAIL);
 
-    const passwordHash = await bcrypt.hash('admin123', 10);
-    await this.userRepository.save({
-      id: randomUUID(),
-      email: 'admin@arena.local',
-      username: 'admin',
-      passwordHash,
-      roles: ['admin', 'judge', 'player'],
-      displayName: 'Administrador',
-      active: true,
-      createdAt: new Date().toISOString(),
-    });
+    if (!admin) {
+      const passwordHash = await bcrypt.hash('admin123', 10);
+      await this.userRepository.save({
+        id: randomUUID(),
+        email: DEFAULT_ADMIN_EMAIL,
+        username: DEFAULT_ADMIN_USERNAME,
+        passwordHash,
+        roles: ['admin', 'judge', 'player'],
+        displayName: 'Administrador',
+        active: true,
+        createdAt: new Date().toISOString(),
+      });
+      return;
+    }
+
+    const roles = normalizeRoles(admin.roles);
+    const needsUpgrade = !roles.includes('judge') || !roles.includes('player');
+
+    if (needsUpgrade) {
+      await this.userRepository.update({
+        ...admin,
+        email: admin.email || DEFAULT_ADMIN_EMAIL,
+        roles: Array.from(new Set<UserRole>([...roles, 'admin', 'judge', 'player'])),
+      });
+    }
   }
 
   async register(input: RegisterInput): Promise<Omit<User, 'passwordHash'>> {
@@ -63,21 +84,27 @@ export class AuthService {
   ): Promise<{ token: string; session: SessionPayload } | null> {
     await this.ensureDefaultAdmin();
 
-    const normalized = identifier.trim().toLowerCase();
+    const trimmed = identifier.trim();
+    const normalized = trimmed.toLowerCase();
+
     const user =
       (await this.userRepository.findByEmail(normalized)) ??
-      (await this.userRepository.findByUsername(identifier.trim()));
+      (await this.userRepository.findByUsername(trimmed)) ??
+      (normalized === DEFAULT_ADMIN_USERNAME
+        ? await this.userRepository.findByUsername(DEFAULT_ADMIN_USERNAME)
+        : null);
 
     if (!user || !user.active) return null;
 
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) return null;
 
+    const roles = normalizeRoles(user.roles);
     const session: SessionPayload = {
       userId: user.id,
       email: user.email,
       username: user.username,
-      roles: user.roles,
+      roles,
       displayName: user.displayName,
     };
 

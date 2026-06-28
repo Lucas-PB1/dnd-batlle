@@ -34,7 +34,7 @@ export default function LoginPage() {
       return;
     }
 
-    router.push(primaryRedirectRole(data.session.roles));
+    router.push(primaryRedirectRole(data.session?.roles ?? ['player']));
     router.refresh();
   }
 

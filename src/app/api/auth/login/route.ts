@@ -5,16 +5,23 @@ import { ServiceFactory } from '@/infrastructure/factories/service-factory';
 import { handleApiError, jsonOk } from '@/lib/api-response';
 import { SESSION_COOKIE } from '@/shared/constants/game-rules';
 
-const loginSchema = z.object({
-  identifier: z.string().min(1, 'E-mail ou usuário obrigatório'),
-  password: z.string().min(1, 'Senha obrigatória'),
-});
+const loginSchema = z
+  .object({
+    identifier: z.string().optional(),
+    username: z.string().optional(),
+    password: z.string().min(1, 'Senha obrigatória'),
+  })
+  .refine((data) => Boolean(data.identifier?.trim() || data.username?.trim()), {
+    message: 'E-mail ou usuário obrigatório',
+    path: ['identifier'],
+  });
 
 export async function POST(request: Request) {
   try {
     const body = loginSchema.parse(await request.json());
+    const identifier = (body.identifier ?? body.username ?? '').trim();
     const authService = ServiceFactory.create().getAuthService();
-    const result = await authService.login(body.identifier, body.password);
+    const result = await authService.login(identifier, body.password);
 
     if (!result) {
       return NextResponse.json({ error: 'Credenciais inválidas' }, { status: 401 });

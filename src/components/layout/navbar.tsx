@@ -90,13 +90,13 @@ export function Navbar() {
   ];
 
   const roleLinks: NavLink[] = [
-    ...(session?.roles.includes('player')
+    ...(session?.roles?.includes('player')
       ? [{ href: '/player', label: 'Meu painel', active: pathname.startsWith('/player') }]
       : []),
-    ...(session?.roles.includes('judge')
+    ...(session?.roles?.includes('judge')
       ? [{ href: '/judge', label: 'Juiz', active: pathname.startsWith('/judge') }]
       : []),
-    ...(session?.roles.includes('admin')
+    ...(session?.roles?.includes('admin')
       ? [{ href: '/admin', label: 'Admin', active: pathname.startsWith('/admin') }]
       : []),
   ];
