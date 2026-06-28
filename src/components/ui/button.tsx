@@ -8,7 +8,7 @@ export function Button({ className, variant = 'primary', ...props }: ButtonProps
   return (
     <button
       className={cn(
-        'inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium transition disabled:opacity-50',
+        'inline-flex min-h-11 items-center justify-center rounded-lg px-4 py-2.5 text-sm font-medium transition disabled:opacity-50',
         variant === 'primary' &&
           'bg-accent text-stone-950 shadow-lg shadow-amber-900/20 hover:bg-amber-500',
         variant === 'secondary' &&

@@ -49,12 +49,17 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <div>
             <Label>Usuário</Label>
-            <Input value={username} onChange={(e) => setUsername(e.target.value)} />
+            <Input
+              autoComplete="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+            />
           </div>
           <div>
             <Label>Senha</Label>
             <Input
               type="password"
+              autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />

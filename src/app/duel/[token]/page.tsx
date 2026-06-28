@@ -107,7 +107,7 @@ export default function DuelRegistrationPage() {
         <p className="text-accent text-sm tracking-[0.2em] uppercase">
           Inscrição de duelo
         </p>
-        <h1 className="text-3xl font-bold">Prepare-se para a arena</h1>
+        <h1 className="text-2xl font-bold sm:text-3xl">Prepare-se para a arena</h1>
         <p className="text-muted">Juiz: {duel.judgeName}</p>
       </section>
 

@@ -69,14 +69,23 @@ export default function JudgePage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Painel do Juiz</h1>
+          <h1 className="text-2xl font-bold sm:text-3xl">Painel do Juiz</h1>
           <p className="text-muted">
             Gere links, acompanhe inscrições e registre resultados.
           </p>
         </div>
-        <Button onClick={createDuel}>Gerar novo duelo</Button>
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+          <Link href="/regras" className="w-full sm:w-auto">
+            <Button variant="secondary" className="w-full sm:w-auto">
+              Ver regras
+            </Button>
+          </Link>
+          <Button onClick={createDuel} className="w-full sm:w-auto">
+            Gerar novo duelo
+          </Button>
+        </div>
       </div>
 
       {link && (
@@ -86,10 +95,10 @@ export default function JudgePage() {
             Envie para os jogadores preencherem nome e classe
           </CardDescription>
           <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-            <code className="flex-1 truncate rounded-lg bg-stone-950/60 px-3 py-2 text-sm">
+            <code className="flex-1 break-all rounded-lg bg-stone-950/60 px-3 py-2 text-xs sm:text-sm">
               {link}
             </code>
-            <Button variant="secondary" onClick={copyLink}>
+            <Button variant="secondary" onClick={copyLink} className="w-full sm:w-auto">
               Copiar
             </Button>
           </div>
@@ -107,9 +116,9 @@ export default function JudgePage() {
               key={duel.id}
               className="border-card-border/70 flex flex-col gap-3 rounded-xl border bg-stone-950/30 p-4 sm:flex-row sm:items-center sm:justify-between"
             >
-              <div>
-                <div className="flex items-center gap-2">
-                  <p className="font-medium">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-medium break-words">
                     {duel.playerA?.name ?? 'Jogador A ?'} vs{' '}
                     {duel.playerB?.name ?? 'Jogador B ?'}
                   </p>
@@ -121,13 +130,15 @@ export default function JudgePage() {
                   Token: {duel.token} · {duel.isClassified ? 'Classificado' : 'Amistoso'}
                 </p>
               </div>
-              <div className="flex gap-2">
-                <Link href={`/duel/${duel.token}`}>
-                  <Button variant="secondary">Link</Button>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Link href={`/duel/${duel.token}`} className="w-full sm:w-auto">
+                  <Button variant="secondary" className="w-full sm:w-auto">
+                    Link
+                  </Button>
                 </Link>
                 {duel.status !== 'completed' && (
-                  <Link href={`/judge/duel/${duel.id}`}>
-                    <Button>Registrar resultado</Button>
+                  <Link href={`/judge/duel/${duel.id}`} className="w-full sm:w-auto">
+                    <Button className="w-full sm:w-auto">Registrar resultado</Button>
                   </Link>
                 )}
               </div>

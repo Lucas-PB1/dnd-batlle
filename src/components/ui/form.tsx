@@ -5,7 +5,7 @@ export function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
     <input
       {...props}
       className={cn(
-        'border-card-border text-foreground placeholder:text-muted focus:border-accent/60 w-full rounded-lg border bg-stone-950/60 px-3 py-2 text-sm transition outline-none',
+        'border-card-border text-foreground placeholder:text-muted focus:border-accent/60 min-h-11 w-full rounded-lg border bg-stone-950/60 px-3 py-2.5 text-base transition outline-none sm:text-sm',
         props.className,
       )}
     />
@@ -17,7 +17,7 @@ export function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
     <select
       {...props}
       className={cn(
-        'border-card-border text-foreground focus:border-accent/60 w-full rounded-lg border bg-stone-950/60 px-3 py-2 text-sm transition outline-none',
+        'border-card-border text-foreground focus:border-accent/60 min-h-11 w-full rounded-lg border bg-stone-950/60 px-3 py-2.5 text-base transition outline-none sm:text-sm',
         props.className,
       )}
     />

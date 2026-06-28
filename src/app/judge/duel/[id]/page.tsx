@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { JudgeTools } from '@/components/judge/judge-tools';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardTitle } from '@/components/ui/card';
 import { Input, Label, Select } from '@/components/ui/form';
@@ -64,69 +65,88 @@ export default function JudgeDuelPage() {
   if (loading) return <p className="text-muted">Carregando...</p>;
   if (!duel) return <p className="text-danger">Duelo não encontrado.</p>;
 
+  const selectedArena = ARENAS[Number(arena)];
+
   return (
-    <div className="mx-auto max-w-xl space-y-6">
+    <div className="mx-auto max-w-5xl space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Registrar resultado</h1>
-        <p className="text-muted">Confirme arena, vencedor e rodadas do combate.</p>
+        <h1 className="text-2xl font-bold sm:text-3xl">Registrar resultado</h1>
+        <p className="text-muted text-sm sm:text-base">
+          Sorteie arena, conduza o combate e registre o placar.
+        </p>
       </div>
 
-      <Card>
-        <CardTitle>
-          {duel.playerA?.name ?? 'A'} vs {duel.playerB?.name ?? 'B'}
-        </CardTitle>
-        <CardDescription>
-          {duel.playerA?.characterClass} (Faixa {duel.playerA?.bracket}) vs{' '}
-          {duel.playerB?.characterClass} (Faixa {duel.playerB?.bracket})
-        </CardDescription>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <JudgeTools
+          duel={duel}
+          arena={arena}
+          outcome={outcome}
+          onArenaChange={setArena}
+        />
 
-        <form onSubmit={submit} className="mt-6 space-y-4">
-          <div>
-            <Label>Arena (d6)</Label>
-            <Select value={arena} onChange={(e) => setArena(e.target.value)}>
-              {Object.entries(ARENAS).map(([key, value]) => (
-                <option key={key} value={key}>
-                  {key}. {value.name}
-                </option>
-              ))}
-            </Select>
-          </div>
+        <Card>
+          <CardTitle>
+            {duel.playerA?.name ?? 'A'} vs {duel.playerB?.name ?? 'B'}
+          </CardTitle>
+          <CardDescription className="break-words">
+            {duel.playerA?.characterClass} (Faixa {duel.playerA?.bracket}) vs{' '}
+            {duel.playerB?.characterClass} (Faixa {duel.playerB?.bracket})
+            {duel.isClassified ? ' · Classificado' : ' · Amistoso'}
+          </CardDescription>
 
-          <div>
-            <Label>Resultado</Label>
-            <Select
-              value={outcome}
-              onChange={(e) => setOutcome(e.target.value as DuelOutcome)}
-            >
-              <option value="player_a">Vitória jogador A — {duel.playerA?.name}</option>
-              <option value="player_b">Vitória jogador B — {duel.playerB?.name}</option>
-              <option value="draw">Empate</option>
-            </Select>
-          </div>
+          <form onSubmit={submit} className="mt-6 space-y-4">
+            <div>
+              <Label>Arena (d6)</Label>
+              <Select value={arena} onChange={(e) => setArena(e.target.value)}>
+                {Object.entries(ARENAS).map(([key, value]) => (
+                  <option key={key} value={key}>
+                    {key}. {value.name}
+                  </option>
+                ))}
+              </Select>
+              {selectedArena && (
+                <p className="text-muted mt-1 text-xs">{selectedArena.effect}</p>
+              )}
+            </div>
 
-          <div>
-            <Label>Rodadas</Label>
-            <Input
-              type="number"
-              min={1}
-              max={25}
-              value={rounds}
-              onChange={(e) => setRounds(e.target.value)}
-            />
-          </div>
+            <div>
+              <Label>Resultado</Label>
+              <Select
+                value={outcome}
+                onChange={(e) => setOutcome(e.target.value as DuelOutcome)}
+              >
+                <option value="player_a">Vitória jogador A — {duel.playerA?.name}</option>
+                <option value="player_b">Vitória jogador B — {duel.playerB?.name}</option>
+                <option value="draw">Empate</option>
+              </Select>
+            </div>
 
-          <div>
-            <Label>Observações (opcional)</Label>
-            <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
-          </div>
+            <div>
+              <Label>Rodadas</Label>
+              <Input
+                type="number"
+                min={1}
+                max={25}
+                inputMode="numeric"
+                value={rounds}
+                onChange={(e) => setRounds(e.target.value)}
+              />
+              <p className="text-muted mt-1 text-xs">Empate automático após 25 rodadas.</p>
+            </div>
 
-          {error && <p className="text-danger text-sm">{error}</p>}
+            <div>
+              <Label>Observações (opcional)</Label>
+              <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
+            </div>
 
-          <Button type="submit" className="w-full">
-            Finalizar duelo
-          </Button>
-        </form>
-      </Card>
+            {error && <p className="text-danger text-sm">{error}</p>}
+
+            <Button type="submit" className="w-full">
+              Finalizar duelo
+            </Button>
+          </form>
+        </Card>
+      </div>
     </div>
   );
 }

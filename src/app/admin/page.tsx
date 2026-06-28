@@ -89,7 +89,7 @@ export default function AdminPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Painel Admin</h1>
+        <h1 className="text-2xl font-bold sm:text-3xl">Painel Admin</h1>
         <p className="text-muted">Cadastre juízes válidos para conduzir duelos.</p>
       </div>
 
@@ -136,18 +136,19 @@ export default function AdminPage() {
             {judges.map((judge) => (
               <div
                 key={judge.id}
-                className="border-card-border/70 flex items-center justify-between rounded-xl border bg-stone-950/30 p-4"
+                className="border-card-border/70 flex flex-col gap-3 rounded-xl border bg-stone-950/30 p-4 sm:flex-row sm:items-center sm:justify-between"
               >
-                <div>
+                <div className="min-w-0">
                   <p className="font-medium">{judge.displayName}</p>
                   <p className="text-muted text-sm">@{judge.username}</p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <Badge tone={judge.active ? 'success' : 'warning'}>
                     {judge.active ? 'Ativo' : 'Inativo'}
                   </Badge>
                   <Button
                     variant="secondary"
+                    className="flex-1 sm:flex-none"
                     onClick={() => toggleJudge(judge.id, !judge.active)}
                   >
                     {judge.active ? 'Desativar' : 'Ativar'}

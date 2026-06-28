@@ -32,6 +32,9 @@ body {
     var(--background);
   color: var(--foreground);
   min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: clip;
+  -webkit-tap-highlight-color: transparent;
 }
 
 * {

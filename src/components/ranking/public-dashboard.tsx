@@ -54,7 +54,7 @@ export function PublicDashboard({
     <div className="space-y-8">
       <section className="space-y-2">
         <p className="text-accent text-sm tracking-[0.2em] uppercase">Coliseu ao vivo</p>
-        <h1 className="text-3xl font-bold sm:text-4xl">Ranking de Duelos</h1>
+        <h1 className="text-2xl font-bold sm:text-3xl sm:text-4xl">Ranking de Duelos</h1>
         <p className="text-muted max-w-2xl">
           Histórico público de combates, pontuação da temporada e desempenho por classe.
         </p>
@@ -70,8 +70,38 @@ export function PublicDashboard({
         <Card>
           <CardTitle>Top ranking</CardTitle>
           <CardDescription>Pontos acumulados na temporada</CardDescription>
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full text-sm">
+
+          <div className="mt-4 space-y-3 sm:hidden">
+            {ranking.length === 0 && (
+              <p className="text-muted py-8 text-center text-sm">
+                Nenhum duelo finalizado ainda.
+              </p>
+            )}
+            {ranking.slice(0, 10).map((entry, index) => (
+              <div
+                key={`${entry.name}-${entry.characterClass}-mobile`}
+                className="border-card-border/70 rounded-xl border bg-stone-950/30 p-4"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-muted text-xs">#{index + 1}</p>
+                    <p className="truncate font-medium">{entry.name}</p>
+                    <p className="text-muted truncate text-sm">{entry.characterClass}</p>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <p className="text-accent text-lg font-semibold">{entry.points}</p>
+                    <p className="text-muted text-xs">pts</p>
+                  </div>
+                </div>
+                <p className="text-muted mt-2 text-xs">
+                  {entry.wins}V · {entry.draws}E · {entry.losses}D
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-4 hidden overflow-x-auto sm:block">
+            <table className="min-w-[28rem] w-full text-sm">
               <thead className="text-muted text-left">
                 <tr>
                   <th className="pb-2">#</th>
@@ -135,7 +165,7 @@ export function PublicDashboard({
               className="border-card-border/70 flex flex-col gap-2 rounded-xl border bg-stone-950/30 p-4 sm:flex-row sm:items-center sm:justify-between"
             >
               <div>
-                <p className="font-medium">
+                <p className="font-medium break-words">
                   {duel.playerAName} ({duel.playerAClass}) vs {duel.playerBName} (
                   {duel.playerBClass})
                 </p>
