@@ -4,7 +4,12 @@ import { useState } from 'react';
 import { PublicDashboard } from '@/components/ranking/public-dashboard';
 import { RulesGuide } from '@/components/rules/rules-guide';
 import { Tabs } from '@/components/ui/tabs';
-import type { ClassStats, CompletedDuelSummary, RankingEntry } from '@/domain/entities';
+import type {
+  CharacterRankingEntry,
+  ClassStats,
+  CompletedDuelSummary,
+  PlayerRankingEntry,
+} from '@/domain/entities';
 
 const HOME_TABS = [
   { id: 'ranking', label: 'Ranking' },
@@ -14,7 +19,8 @@ const HOME_TABS = [
 type HomeTabId = (typeof HOME_TABS)[number]['id'];
 
 interface HomeDashboardProps {
-  ranking: RankingEntry[];
+  characterRanking: CharacterRankingEntry[];
+  playerRanking: PlayerRankingEntry[];
   classStats: ClassStats[];
   totalDuels: number;
   recentDuels: CompletedDuelSummary[];
@@ -22,7 +28,8 @@ interface HomeDashboardProps {
 }
 
 export function HomeDashboard({
-  ranking,
+  characterRanking,
+  playerRanking,
   classStats,
   totalDuels,
   recentDuels,
@@ -36,7 +43,8 @@ export function HomeDashboard({
 
       {activeTab === 'ranking' ? (
         <PublicDashboard
-          ranking={ranking}
+          characterRanking={characterRanking}
+          playerRanking={playerRanking}
           classStats={classStats}
           totalDuels={totalDuels}
           recentDuels={recentDuels}

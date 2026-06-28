@@ -1,6 +1,8 @@
 import path from 'path';
-import type { IDuelRepository, IUserRepository } from '@/domain/repositories';
+import type { ICharacterRepository, IDuelRepository, IUserRepository } from '@/domain/repositories';
 import { isPostgresEnabled, resetDbClientForTests } from '@/infrastructure/persistence/db';
+import { CharacterFileRepository } from '@/infrastructure/persistence/repositories/character-file-repository';
+import { CharacterPostgresRepository } from '@/infrastructure/persistence/repositories/character-postgres-repository';
 import { DuelFileRepository } from '@/infrastructure/persistence/repositories/duel-file-repository';
 import { DuelPostgresRepository } from '@/infrastructure/persistence/repositories/duel-postgres-repository';
 import { UserFileRepository } from '@/infrastructure/persistence/repositories/user-file-repository';
@@ -13,6 +15,7 @@ export class RepositoryFactory {
   private readonly fileStore: FileStore | null;
   private readonly usePostgres: boolean;
   private userRepository: IUserRepository | null = null;
+  private characterRepository: ICharacterRepository | null = null;
   private duelRepository: IDuelRepository | null = null;
 
   private constructor(dataDir?: string) {
@@ -51,6 +54,15 @@ export class RepositoryFactory {
         : new UserFileRepository(this.fileStore!);
     }
     return this.userRepository;
+  }
+
+  getCharacterRepository(): ICharacterRepository {
+    if (!this.characterRepository) {
+      this.characterRepository = this.usePostgres
+        ? new CharacterPostgresRepository()
+        : new CharacterFileRepository(this.fileStore!);
+    }
+    return this.characterRepository;
   }
 
   getDuelRepository(): IDuelRepository {

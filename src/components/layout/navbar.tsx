@@ -8,7 +8,8 @@ import { cn } from '@/lib/cn';
 
 interface Session {
   username: string;
-  role: 'admin' | 'judge';
+  email: string;
+  roles: ('admin' | 'judge' | 'player')[];
   displayName: string;
 }
 
@@ -89,10 +90,13 @@ export function Navbar() {
   ];
 
   const roleLinks: NavLink[] = [
-    ...(session?.role === 'judge'
+    ...(session?.roles.includes('player')
+      ? [{ href: '/player', label: 'Meu painel', active: pathname.startsWith('/player') }]
+      : []),
+    ...(session?.roles.includes('judge')
       ? [{ href: '/judge', label: 'Juiz', active: pathname.startsWith('/judge') }]
       : []),
-    ...(session?.role === 'admin'
+    ...(session?.roles.includes('admin')
       ? [{ href: '/admin', label: 'Admin', active: pathname.startsWith('/admin') }]
       : []),
   ];

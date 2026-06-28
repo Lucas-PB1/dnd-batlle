@@ -1,11 +1,28 @@
-import type { Duel, DuelResult, PlayerEntry, User, UserRole } from '@/domain/entities';
+import type { Character, Duel, DuelResult, PlayerEntry, User, UserRole } from '@/domain/entities';
+import { normalizeRoles } from '@/shared/utils/roles';
 
 export interface UserRow {
   id: string;
+  email: string | null;
   username: string;
   password_hash: string;
-  role: UserRole;
+  role?: string | null;
+  roles?: UserRole[] | string | null;
   display_name: string;
+  active: boolean;
+  created_at: string | Date;
+}
+
+export interface CharacterRow {
+  id: string;
+  player_id: string;
+  name: string;
+  character_class: string;
+  subclass: string | null;
+  description: string | null;
+  portrait_url: string | null;
+  generation: string | null;
+  is_dead: boolean;
   active: boolean;
   created_at: string | Date;
 }
@@ -29,13 +46,43 @@ function toIsoString(value: string | Date): string {
   return value instanceof Date ? value.toISOString() : value;
 }
 
+function parseRoles(row: UserRow): UserRole[] {
+  if (row.roles) {
+    if (typeof row.roles === 'string') {
+      return normalizeRoles(JSON.parse(row.roles) as UserRole[]);
+    }
+    return normalizeRoles(row.roles);
+  }
+  if (row.role) {
+    return normalizeRoles(row.role as UserRole);
+  }
+  return ['player'];
+}
+
 export function mapUserRow(row: UserRow): User {
   return {
     id: row.id,
+    email: row.email ?? `${row.username}@arena.local`,
     username: row.username,
     passwordHash: row.password_hash,
-    role: row.role,
+    roles: parseRoles(row),
     displayName: row.display_name,
+    active: row.active,
+    createdAt: toIsoString(row.created_at),
+  };
+}
+
+export function mapCharacterRow(row: CharacterRow): Character {
+  return {
+    id: row.id,
+    playerId: row.player_id,
+    name: row.name,
+    characterClass: row.character_class,
+    subclass: row.subclass ?? undefined,
+    description: row.description ?? undefined,
+    portraitUrl: row.portrait_url ?? undefined,
+    generation: row.generation ?? undefined,
+    isDead: row.is_dead,
     active: row.active,
     createdAt: toIsoString(row.created_at),
   };
@@ -55,5 +102,28 @@ export function mapDuelRow(row: DuelRow): Duel {
     result: row.result ?? undefined,
     createdAt: toIsoString(row.created_at),
     completedAt: row.completed_at ? toIsoString(row.completed_at) : undefined,
+  };
+}
+
+/** Normaliza usuários legados (campo role único) vindos de JSON local. */
+export function normalizeLegacyUser(raw: User & { role?: UserRole }): User {
+  if (raw.roles?.length) {
+    return {
+      ...raw,
+      email: raw.email ?? `${raw.username}@arena.local`,
+      roles: normalizeRoles(raw.roles),
+    };
+  }
+  if (raw.role) {
+    return {
+      ...raw,
+      email: raw.email ?? `${raw.username}@arena.local`,
+      roles: normalizeRoles(raw.role),
+    };
+  }
+  return {
+    ...raw,
+    email: raw.email ?? `${raw.username}@arena.local`,
+    roles: ['player'],
   };
 }

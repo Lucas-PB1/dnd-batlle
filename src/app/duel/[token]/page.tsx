@@ -1,10 +1,12 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardTitle } from '@/components/ui/card';
 import { Badge, Input, Label, Select } from '@/components/ui/form';
+import type { Character } from '@/domain/entities';
 import { BRACKET_BY_CLASS } from '@/shared/constants/game-rules';
 
 interface DuelPublic {
@@ -12,36 +14,38 @@ interface DuelPublic {
   status: string;
   isClassified: boolean;
   judgeName: string;
-  playerA?: { name: string; characterClass: string; bracket: string };
-  playerB?: { name: string; characterClass: string; bracket: string };
+  playerA?: {
+    name: string;
+    characterClass: string;
+    bracket: string;
+    playerDisplayName?: string;
+    portraitUrl?: string;
+  };
+  playerB?: {
+    name: string;
+    characterClass: string;
+    bracket: string;
+    playerDisplayName?: string;
+    portraitUrl?: string;
+  };
 }
 
 export default function DuelRegistrationPage() {
   const params = useParams<{ token: string }>();
   const [duel, setDuel] = useState<DuelPublic | null>(null);
-  const [classes, setClasses] = useState<string[]>([]);
+  const [characters, setCharacters] = useState<Character[]>([]);
+  const [session, setSession] = useState<{ roles: string[] } | null>(null);
+  const [mode, setMode] = useState<'character' | 'manual'>('character');
   const [slot, setSlot] = useState<'A' | 'B'>('A');
+  const [characterId, setCharacterId] = useState('');
   const [name, setName] = useState('');
   const [characterClass, setCharacterClass] = useState('');
+  const [classes, setClasses] = useState<string[]>([]);
   const [subclass, setSubclass] = useState('');
   const [seasonPointsBefore, setSeasonPointsBefore] = useState('0');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
-
-  async function load() {
-    const response = await fetch(`/api/duel/${params.token}`);
-    const data = await response.json();
-    if (!response.ok) {
-      setError(data.error ?? 'Link inválido');
-      setLoading(false);
-      return;
-    }
-    setDuel(data.duel);
-    setClasses(data.classes ?? []);
-    if (data.classes?.[0]) setCharacterClass(data.classes[0]);
-    setLoading(false);
-  }
 
   useEffect(() => {
     let active = true;
@@ -57,7 +61,15 @@ export default function DuelRegistrationPage() {
       }
       setDuel(data.duel);
       setClasses(data.classes ?? []);
+      setCharacters(data.characters ?? []);
+      setSession(data.session ?? null);
       if (data.classes?.[0]) setCharacterClass(data.classes[0]);
+      if (data.characters?.[0]) {
+        setCharacterId(data.characters[0].id);
+        setMode('character');
+      } else if (!data.session?.roles?.includes('player')) {
+        setMode('manual');
+      }
       setLoading(false);
     }
 
@@ -72,16 +84,21 @@ export default function DuelRegistrationPage() {
     setError('');
     setMessage('');
 
+    const body =
+      mode === 'character' && characterId
+        ? { slot, characterId, seasonPointsBefore: Number(seasonPointsBefore) }
+        : {
+            slot,
+            name,
+            characterClass,
+            subclass: subclass || undefined,
+            seasonPointsBefore: Number(seasonPointsBefore),
+          };
+
     const response = await fetch(`/api/duel/${params.token}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        slot,
-        name,
-        characterClass,
-        subclass: subclass || undefined,
-        seasonPointsBefore: Number(seasonPointsBefore),
-      }),
+      body: JSON.stringify(body),
     });
 
     const data = await response.json();
@@ -92,7 +109,6 @@ export default function DuelRegistrationPage() {
 
     setMessage('Inscrição salva com sucesso!');
     setDuel(data.duel);
-    await load();
   }
 
   if (loading) return <p className="text-muted">Carregando duelo...</p>;
@@ -100,13 +116,13 @@ export default function DuelRegistrationPage() {
   if (!duel) return null;
 
   const bracket = BRACKET_BY_CLASS[characterClass];
+  const isPlayer = session?.roles?.includes('player');
+  const selectedCharacter = characters.find((item) => item.id === characterId);
 
   return (
     <div className="mx-auto max-w-xl space-y-6">
       <section className="space-y-2 text-center">
-        <p className="text-accent text-sm tracking-[0.2em] uppercase">
-          Inscrição de duelo
-        </p>
+        <p className="text-accent text-sm tracking-[0.2em] uppercase">Inscrição de duelo</p>
         <h1 className="text-2xl font-bold sm:text-3xl">Prepare-se para a arena</h1>
         <p className="text-muted">Juiz: {duel.judgeName}</p>
       </section>
@@ -120,34 +136,52 @@ export default function DuelRegistrationPage() {
         </div>
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <div className="border-card-border/70 rounded-xl border bg-stone-950/30 p-4">
-            <p className="text-muted text-xs uppercase">Jogador A</p>
-            <p className="font-medium">{duel.playerA?.name ?? 'Vago'}</p>
-            {duel.playerA && (
-              <p className="text-muted text-sm">
-                {duel.playerA.characterClass} · Faixa {duel.playerA.bracket}
-              </p>
-            )}
-          </div>
-          <div className="border-card-border/70 rounded-xl border bg-stone-950/30 p-4">
-            <p className="text-muted text-xs uppercase">Jogador B</p>
-            <p className="font-medium">{duel.playerB?.name ?? 'Vago'}</p>
-            {duel.playerB && (
-              <p className="text-muted text-sm">
-                {duel.playerB.characterClass} · Faixa {duel.playerB.bracket}
-              </p>
-            )}
-          </div>
+          {(['A', 'B'] as const).map((slotKey) => {
+            const player = slotKey === 'A' ? duel.playerA : duel.playerB;
+            return (
+              <div
+                key={slotKey}
+                className="border-card-border/70 rounded-xl border bg-stone-950/30 p-4"
+              >
+                <p className="text-muted text-xs uppercase">Jogador {slotKey}</p>
+                <p className="font-medium">{player?.name ?? 'Vago'}</p>
+                {player && (
+                  <>
+                    {player.playerDisplayName && (
+                      <p className="text-accent text-xs">{player.playerDisplayName}</p>
+                    )}
+                    <p className="text-muted text-sm">
+                      {player.characterClass} · Faixa {player.bracket}
+                    </p>
+                  </>
+                )}
+              </div>
+            );
+          })}
         </div>
 
         {duel.status === 'completed' ? (
           <p className="text-muted mt-4 text-sm">Este duelo já foi finalizado.</p>
         ) : (
           <>
-            <CardTitle className="mt-6">Sua ficha</CardTitle>
+            <CardTitle className="mt-6">Sua inscrição</CardTitle>
             <CardDescription>
-              Preencha e envie — cada jogador escolhe A ou B
+              {isPlayer
+                ? 'Escolha um personagem cadastrado ou preencha manualmente'
+                : 'Faça login como jogador para usar personagens cadastrados'}
             </CardDescription>
+
+            {!isPlayer && (
+              <p className="text-muted mt-3 text-sm">
+                <Link href="/login" className="text-accent hover:underline">
+                  Entrar
+                </Link>{' '}
+                ou{' '}
+                <Link href="/register" className="text-accent hover:underline">
+                  criar conta
+                </Link>
+              </p>
+            )}
 
             <form onSubmit={submit} className="mt-4 space-y-4">
               <div>
@@ -160,35 +194,95 @@ export default function DuelRegistrationPage() {
                   <option value="B">Jogador B</option>
                 </Select>
               </div>
-              <div>
-                <Label>Nome do personagem/jogador</Label>
-                <Input value={name} onChange={(e) => setName(e.target.value)} required />
-              </div>
-              <div>
-                <Label>Classe</Label>
-                <Select
-                  value={characterClass}
-                  onChange={(e) => setCharacterClass(e.target.value)}
-                >
-                  {classes.map((item) => (
-                    <option key={item} value={item}>
-                      {item}
-                    </option>
-                  ))}
-                </Select>
-                {bracket && (
-                  <p className="text-muted mt-1 text-xs">Faixa automática: {bracket}</p>
-                )}
-              </div>
-              <div>
-                <Label>Subclasse (opcional)</Label>
-                <Input value={subclass} onChange={(e) => setSubclass(e.target.value)} />
-              </div>
+
+              {isPlayer && characters.length > 0 && (
+                <>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant={mode === 'character' ? 'primary' : 'secondary'}
+                      onClick={() => setMode('character')}
+                    >
+                      Meus personagens
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={mode === 'manual' ? 'primary' : 'secondary'}
+                      onClick={() => setMode('manual')}
+                    >
+                      Manual
+                    </Button>
+                  </div>
+
+                  {mode === 'character' && (
+                    <div>
+                      <Label>Personagem</Label>
+                      <Select
+                        value={characterId}
+                        onChange={(e) => setCharacterId(e.target.value)}
+                      >
+                        {characters.map((character) => (
+                          <option key={character.id} value={character.id}>
+                            {character.name} · {character.characterClass}
+                            {character.isDead ? ' (morto)' : ''}
+                          </option>
+                        ))}
+                      </Select>
+                      {selectedCharacter && (
+                        <div className="border-card-border/70 mt-3 rounded-xl border bg-stone-950/30 p-3 text-sm">
+                          {selectedCharacter.description && (
+                            <p className="text-muted">{selectedCharacter.description}</p>
+                          )}
+                          {selectedCharacter.generation && (
+                            <p className="text-muted mt-1 text-xs">
+                              {selectedCharacter.generation}
+                            </p>
+                          )}
+                          <p className="text-muted mt-1 text-xs">
+                            Faixa {BRACKET_BY_CLASS[selectedCharacter.characterClass]}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
+
+              {(mode === 'manual' || !isPlayer || characters.length === 0) && (
+                <>
+                  <div>
+                    <Label>Nome do personagem</Label>
+                    <Input value={name} onChange={(e) => setName(e.target.value)} required />
+                  </div>
+                  <div>
+                    <Label>Classe</Label>
+                    <Select
+                      value={characterClass}
+                      onChange={(e) => setCharacterClass(e.target.value)}
+                    >
+                      {classes.map((item) => (
+                        <option key={item} value={item}>
+                          {item}
+                        </option>
+                      ))}
+                    </Select>
+                    {bracket && (
+                      <p className="text-muted mt-1 text-xs">Faixa automática: {bracket}</p>
+                    )}
+                  </div>
+                  <div>
+                    <Label>Subclasse (opcional)</Label>
+                    <Input value={subclass} onChange={(e) => setSubclass(e.target.value)} />
+                  </div>
+                </>
+              )}
+
               <div>
                 <Label>Pontos na temporada (antes do duelo)</Label>
                 <Input
                   type="number"
                   min={0}
+                  inputMode="numeric"
                   value={seasonPointsBefore}
                   onChange={(e) => setSeasonPointsBefore(e.target.value)}
                 />

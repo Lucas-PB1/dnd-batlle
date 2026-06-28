@@ -23,7 +23,7 @@ export default function JudgeDuelPage() {
   useEffect(() => {
     async function load() {
       const me = await fetch('/api/auth/me').then((r) => r.json());
-      if (!me.session || me.session.role !== 'judge') {
+      if (!me.session?.roles?.includes('judge')) {
         router.push('/login');
         return;
       }

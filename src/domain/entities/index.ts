@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'judge';
+export type UserRole = 'admin' | 'judge' | 'player';
 
 export type Bracket = 'A' | 'B' | 'C';
 
@@ -8,18 +8,40 @@ export type DuelOutcome = 'player_a' | 'player_b' | 'draw';
 
 export interface User {
   id: string;
+  email: string;
   username: string;
   passwordHash: string;
-  role: UserRole;
+  roles: UserRole[];
   displayName: string;
   active: boolean;
   createdAt: string;
 }
 
-export interface PlayerEntry {
+export interface Character {
+  id: string;
+  playerId: string;
   name: string;
   characterClass: string;
   subclass?: string;
+  description?: string;
+  portraitUrl?: string;
+  generation?: string;
+  isDead: boolean;
+  active: boolean;
+  createdAt: string;
+}
+
+export interface PlayerEntry {
+  characterId?: string;
+  playerId?: string;
+  playerDisplayName?: string;
+  name: string;
+  characterClass: string;
+  subclass?: string;
+  description?: string;
+  portraitUrl?: string;
+  generation?: string;
+  isDead?: boolean;
   bracket: Bracket;
   seasonPointsBefore: number;
 }
@@ -49,11 +71,39 @@ export interface Duel {
 
 export interface SessionPayload {
   userId: string;
+  email: string;
   username: string;
-  role: UserRole;
+  roles: UserRole[];
   displayName: string;
 }
 
+export interface CharacterRankingEntry {
+  characterId?: string;
+  characterName: string;
+  playerId?: string;
+  playerDisplayName?: string;
+  characterClass: string;
+  subclass?: string;
+  bracket: Bracket;
+  points: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  duels: number;
+}
+
+export interface PlayerRankingEntry {
+  playerId: string;
+  playerDisplayName: string;
+  points: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  duels: number;
+  characters: number;
+}
+
+/** @deprecated Use characterRanking */
 export interface RankingEntry {
   name: string;
   characterClass: string;
@@ -75,9 +125,16 @@ export interface ClassStats {
 }
 
 export interface PublicStats {
-  ranking: RankingEntry[];
+  characterRanking: CharacterRankingEntry[];
+  playerRanking: PlayerRankingEntry[];
   classStats: ClassStats[];
   totalDuels: number;
+  recentDuels: CompletedDuelSummary[];
+}
+
+export interface PlayerStats {
+  playerRanking: PlayerRankingEntry | null;
+  characterRanking: CharacterRankingEntry[];
   recentDuels: CompletedDuelSummary[];
 }
 
@@ -87,6 +144,8 @@ export interface CompletedDuelSummary {
   playerBName: string;
   playerAClass: string;
   playerBClass: string;
+  playerADisplayName?: string;
+  playerBDisplayName?: string;
   outcome: DuelOutcome;
   arena?: number;
   rounds: number;

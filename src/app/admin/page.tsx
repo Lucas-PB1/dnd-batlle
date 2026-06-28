@@ -9,6 +9,7 @@ import { Badge, Input, Label } from '@/components/ui/form';
 interface Judge {
   id: string;
   username: string;
+  email?: string;
   displayName: string;
   active: boolean;
 }
@@ -16,7 +17,7 @@ interface Judge {
 export default function AdminPage() {
   const router = useRouter();
   const [judges, setJudges] = useState<Judge[]>([]);
-  const [form, setForm] = useState({ username: '', password: '', displayName: '' });
+  const [form, setForm] = useState({ email: '', password: '', displayName: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -36,7 +37,7 @@ export default function AdminPage() {
     async function bootstrap() {
       const me = await fetch('/api/auth/me').then((r) => r.json());
       if (!active) return;
-      if (!me.session || me.session.role !== 'admin') {
+      if (!me.session?.roles?.includes('admin')) {
         router.push('/login');
         return;
       }
@@ -69,7 +70,7 @@ export default function AdminPage() {
       return;
     }
 
-    setForm({ username: '', password: '', displayName: '' });
+    setForm({ email: '', password: '', displayName: '' });
     await loadJudges();
   }
 
@@ -96,9 +97,7 @@ export default function AdminPage() {
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardTitle>Novo juiz</CardTitle>
-          <CardDescription>
-            Login simples via arquivo local (data/users.json)
-          </CardDescription>
+          <CardDescription>Cria juiz + jogador e envia e-mail de boas-vindas</CardDescription>
           <form onSubmit={createJudge} className="mt-4 space-y-3">
             <div>
               <Label>Nome exibido</Label>
@@ -108,10 +107,11 @@ export default function AdminPage() {
               />
             </div>
             <div>
-              <Label>Usuário</Label>
+              <Label>E-mail</Label>
               <Input
-                value={form.username}
-                onChange={(e) => setForm({ ...form, username: e.target.value })}
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
               />
             </div>
             <div>
@@ -140,7 +140,7 @@ export default function AdminPage() {
               >
                 <div className="min-w-0">
                   <p className="font-medium">{judge.displayName}</p>
-                  <p className="text-muted text-sm">@{judge.username}</p>
+                  <p className="text-muted text-sm">{judge.email ?? `@${judge.username}`}</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge tone={judge.active ? 'success' : 'warning'}>

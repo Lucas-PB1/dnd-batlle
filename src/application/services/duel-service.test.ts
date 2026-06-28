@@ -22,12 +22,25 @@ describe('DuelService integration', () => {
     const adminService = factory.getAdminService();
     const authService = factory.getAuthService();
     const duelService = factory.getDuelService();
+    const characterService = factory.getCharacterService();
 
     await authService.ensureDefaultAdmin();
     const judge = await adminService.createJudge({
-      username: 'juiz1',
+      email: 'juiz@test.local',
       password: '1234',
       displayName: 'Juiz Teste',
+    });
+
+    const playerRegister = await authService.register({
+      email: 'aragorn@test.local',
+      password: '1234',
+      displayName: 'Aragorn Player',
+    });
+
+    const character = await characterService.create({
+      playerId: playerRegister.id,
+      name: 'Aragorn',
+      characterClass: 'Lutador',
     });
 
     const duel = await duelService.createDuel({
@@ -38,9 +51,8 @@ describe('DuelService integration', () => {
     await duelService.registerPlayer({
       token: duel.token,
       slot: 'A',
-      name: 'Aragorn',
-      characterClass: 'Lutador',
-      seasonPointsBefore: 0,
+      characterId: character.id,
+      playerId: playerRegister.id,
     });
 
     await duelService.registerPlayer({
@@ -62,10 +74,11 @@ describe('DuelService integration', () => {
     expect(completed.status).toBe('completed');
     expect(completed.result?.pointsA).toBe(4);
     expect(completed.result?.pointsB).toBe(0);
+    expect(completed.playerA?.playerDisplayName).toBe('Aragorn Player');
 
     const stats = await factory.getRankingService().getPublicStats();
     expect(stats.totalDuels).toBe(1);
-    expect(stats.ranking[0]?.name).toBe('Aragorn');
-    expect(stats.ranking[0]?.points).toBe(4);
+    expect(stats.characterRanking[0]?.characterName).toBe('Aragorn');
+    expect(stats.playerRanking[0]?.playerDisplayName).toBe('Aragorn Player');
   });
 });

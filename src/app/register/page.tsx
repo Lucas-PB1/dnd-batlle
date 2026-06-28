@@ -8,10 +8,9 @@ import { Card, CardDescription, CardTitle } from '@/components/ui/card';
 import { Input, Label } from '@/components/ui/form';
 import { primaryRedirectRole } from '@/shared/utils/roles';
 
-export default function LoginPage() {
+export default function RegisterPage() {
   const router = useRouter();
-  const [identifier, setIdentifier] = useState('');
-  const [password, setPassword] = useState('');
+  const [form, setForm] = useState({ email: '', password: '', displayName: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -20,64 +19,74 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
 
-    const response = await fetch('/api/auth/login', {
+    const response = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ identifier, password }),
+      body: JSON.stringify(form),
     });
 
     const data = await response.json();
     setLoading(false);
 
     if (!response.ok) {
-      setError(data.error ?? 'Falha no login');
+      setError(data.error ?? 'Falha no cadastro');
       return;
     }
 
-    router.push(primaryRedirectRole(data.session.roles));
+    router.push(primaryRedirectRole(data.session?.roles ?? ['player']));
     router.refresh();
   }
 
   return (
     <div className="mx-auto max-w-md">
       <Card>
-        <CardTitle>Entrar</CardTitle>
-        <CardDescription>Admin, juiz ou jogador — use e-mail e senha</CardDescription>
+        <CardTitle>Criar conta de jogador</CardTitle>
+        <CardDescription>
+          Cadastre-se para gerenciar personagens e acompanhar seu ranking
+        </CardDescription>
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <div>
-            <Label>E-mail ou usuário</Label>
+            <Label>Nome</Label>
             <Input
-              autoComplete="username"
-              value={identifier}
-              onChange={(e) => setIdentifier(e.target.value)}
+              value={form.displayName}
+              onChange={(e) => setForm({ ...form, displayName: e.target.value })}
+              required
+            />
+          </div>
+          <div>
+            <Label>E-mail</Label>
+            <Input
+              type="email"
+              autoComplete="email"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              required
             />
           </div>
           <div>
             <Label>Senha</Label>
             <Input
               type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="new-password"
+              value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              required
             />
           </div>
 
           {error && <p className="text-danger text-sm">{error}</p>}
 
           <Button type="submit" disabled={loading} className="w-full">
-            {loading ? 'Entrando...' : 'Entrar'}
+            {loading ? 'Cadastrando...' : 'Cadastrar'}
           </Button>
         </form>
 
         <p className="text-muted mt-4 text-sm">
-          Novo jogador?{' '}
-          <Link href="/register" className="text-accent hover:underline">
-            Criar conta
+          Já tem conta?{' '}
+          <Link href="/login" className="text-accent hover:underline">
+            Entrar
           </Link>
-        </p>
-        <p className="text-muted mt-2 text-xs">
-          Primeiro acesso admin: admin / admin123 ou admin@arena.local
         </p>
       </Card>
     </div>

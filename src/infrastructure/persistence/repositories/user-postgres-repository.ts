@@ -30,22 +30,35 @@ export class UserPostgresRepository implements IUserRepository {
     return row ? mapUserRow(row) : null;
   }
 
+  async findByEmail(email: string): Promise<User | null> {
+    const sql = await this.ready();
+    const normalized = email.trim().toLowerCase();
+    const rows =
+      (await sql`SELECT * FROM users WHERE LOWER(email) = ${normalized} LIMIT 1`) as UserRow[];
+    const row = rows[0];
+    return row ? mapUserRow(row) : null;
+  }
+
   async save(user: User): Promise<User> {
     const sql = await this.ready();
     await sql`
       INSERT INTO users (
         id,
+        email,
         username,
         password_hash,
+        roles,
         role,
         display_name,
         active,
         created_at
       ) VALUES (
         ${user.id},
+        ${user.email},
         ${user.username},
         ${user.passwordHash},
-        ${user.role},
+        ${JSON.stringify(user.roles)},
+        ${user.roles[0] ?? 'player'},
         ${user.displayName},
         ${user.active},
         ${user.createdAt}
@@ -59,9 +72,11 @@ export class UserPostgresRepository implements IUserRepository {
     const rows = (await sql`
       UPDATE users
       SET
+        email = ${user.email},
         username = ${user.username},
         password_hash = ${user.passwordHash},
-        role = ${user.role},
+        roles = ${JSON.stringify(user.roles)},
+        role = ${user.roles[0] ?? 'player'},
         display_name = ${user.displayName},
         active = ${user.active},
         created_at = ${user.createdAt}

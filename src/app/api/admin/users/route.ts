@@ -6,25 +6,26 @@ import { ServiceFactory } from '@/infrastructure/factories/service-factory';
 export async function GET() {
   try {
     await requireSession(['admin']);
-    const judges = await ServiceFactory.create().getAdminService().listJudges();
-    return jsonOk({ judges });
+    const users = await ServiceFactory.create().getAdminService().listUsers();
+    return jsonOk({ users });
   } catch (error) {
     return handleApiError(error);
   }
 }
 
-const createJudgeSchema = z.object({
+const createUserSchema = z.object({
   email: z.string().email(),
   password: z.string().min(4),
   displayName: z.string().min(2),
+  roles: z.array(z.enum(['admin', 'judge', 'player'])).min(1),
 });
 
 export async function POST(request: Request) {
   try {
     await requireSession(['admin']);
-    const body = createJudgeSchema.parse(await request.json());
-    const judge = await ServiceFactory.create().getAdminService().createJudge(body);
-    return jsonOk({ judge }, 201);
+    const body = createUserSchema.parse(await request.json());
+    const user = await ServiceFactory.create().getAdminService().createUser(body);
+    return jsonOk({ user }, 201);
   } catch (error) {
     return handleApiError(error);
   }

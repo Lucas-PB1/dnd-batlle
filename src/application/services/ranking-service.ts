@@ -1,123 +1,85 @@
-import type { IDuelRepository } from '@/domain/repositories';
-import type {
-  ClassStats,
-  CompletedDuelSummary,
-  PublicStats,
-  RankingEntry,
-} from '@/domain/entities';
-
-function playerKey(name: string, characterClass: string): string {
-  return `${name.toLowerCase()}::${characterClass}`;
-}
+import type { IDuelRepository, IUserRepository } from '@/domain/repositories';
+import type { ClassStats, Duel, DuelOutcome, PlayerStats, PublicStats } from '@/domain/entities';
+import { aggregateRankings } from '@/domain/services/ranking-aggregator';
 
 export class RankingService {
-  constructor(private readonly duelRepository: IDuelRepository) {}
+  constructor(
+    private readonly duelRepository: IDuelRepository,
+    private readonly userRepository: IUserRepository,
+  ) {}
 
   async getPublicStats(): Promise<PublicStats> {
     const duels = await this.duelRepository.findAll();
-    const completed = duels.filter((duel) => duel.status === 'completed' && duel.result);
+    const { characterRanking, playerRanking, recentDuels } = aggregateRankings(duels);
 
-    const rankingMap = new Map<string, RankingEntry>();
+    const playerRankingWithNames = await this.enrichPlayerNames(playerRanking);
+
+    return {
+      characterRanking,
+      playerRanking: playerRankingWithNames,
+      classStats: this.buildClassStats(duels),
+      totalDuels: duels.filter((duel) => duel.status === 'completed' && duel.isClassified).length,
+      recentDuels,
+    };
+  }
+
+  async getPlayerStats(playerId: string): Promise<PlayerStats> {
+    const duels = await this.duelRepository.findAll();
+    const playerDuels = duels.filter(
+      (duel) =>
+        duel.playerA?.playerId === playerId || duel.playerB?.playerId === playerId,
+    );
+
+    const { characterRanking, playerRanking, recentDuels } = aggregateRankings(playerDuels, {
+      playerId,
+    });
+
+    return {
+      playerRanking: playerRanking[0] ?? null,
+      characterRanking,
+      recentDuels,
+    };
+  }
+
+  private async enrichPlayerNames(
+    ranking: PublicStats['playerRanking'],
+  ): Promise<PublicStats['playerRanking']> {
+    const users = await this.userRepository.findAll();
+    const userMap = new Map(users.map((user) => [user.id, user.displayName]));
+
+    return ranking.map((entry) => ({
+      ...entry,
+      playerDisplayName: userMap.get(entry.playerId) ?? entry.playerDisplayName,
+    }));
+  }
+
+  private buildClassStats(duels: Duel[]): ClassStats[] {
     const classMap = new Map<string, ClassStats>();
+    const completed = duels.filter(
+      (duel) => duel.status === 'completed' && duel.result && duel.isClassified,
+    );
 
     for (const duel of completed) {
       if (!duel.playerA || !duel.playerB || !duel.result) continue;
 
-      this.applyPlayerResult(
-        rankingMap,
-        classMap,
-        duel.playerA.name,
-        duel.playerA.characterClass,
-        duel.playerA.bracket,
-        duel.result.pointsA,
-        duel.result.outcome,
-        'A',
-      );
-      this.applyPlayerResult(
-        rankingMap,
-        classMap,
-        duel.playerB.name,
-        duel.playerB.characterClass,
-        duel.playerB.bracket,
-        duel.result.pointsB,
-        duel.result.outcome,
-        'B',
-      );
+      this.applyClassResult(classMap, duel.playerA.characterClass, duel.result.outcome, 'A');
+      this.applyClassResult(classMap, duel.playerB.characterClass, duel.result.outcome, 'B');
     }
 
-    const ranking = [...rankingMap.values()].sort(
-      (a, b) => b.points - a.points || b.wins - a.wins,
-    );
-
-    const classStats = [...classMap.values()]
+    return [...classMap.values()]
       .map((stat) => ({
         ...stat,
         winRate: stat.total > 0 ? Math.round((stat.wins / stat.total) * 100) : 0,
       }))
       .sort((a, b) => b.total - a.total);
-
-    const recentDuels: CompletedDuelSummary[] = completed
-      .sort((a, b) => (b.completedAt ?? '').localeCompare(a.completedAt ?? ''))
-      .slice(0, 20)
-      .map((duel) => ({
-        id: duel.id,
-        playerAName: duel.playerA!.name,
-        playerBName: duel.playerB!.name,
-        playerAClass: duel.playerA!.characterClass,
-        playerBClass: duel.playerB!.characterClass,
-        outcome: duel.result!.outcome,
-        arena: duel.arena,
-        rounds: duel.result!.rounds,
-        completedAt: duel.completedAt!,
-        isClassified: duel.isClassified,
-      }));
-
-    return {
-      ranking,
-      classStats,
-      totalDuels: completed.length,
-      recentDuels,
-    };
   }
 
-  private applyPlayerResult(
-    rankingMap: Map<string, RankingEntry>,
+  private applyClassResult(
     classMap: Map<string, ClassStats>,
-    name: string,
     characterClass: string,
-    bracket: RankingEntry['bracket'],
-    points: number,
-    outcome: 'player_a' | 'player_b' | 'draw',
+    outcome: DuelOutcome,
     slot: 'A' | 'B',
   ): void {
-    const key = playerKey(name, characterClass);
-    const current = rankingMap.get(key) ?? {
-      name,
-      characterClass,
-      bracket,
-      points: 0,
-      wins: 0,
-      draws: 0,
-      losses: 0,
-      duels: 0,
-    };
-
-    current.points += points;
-    current.duels += 1;
-
-    if (outcome === 'draw') {
-      current.draws += 1;
-    } else if (
-      (outcome === 'player_a' && slot === 'A') ||
-      (outcome === 'player_b' && slot === 'B')
-    ) {
-      current.wins += 1;
-    } else {
-      current.losses += 1;
-    }
-
-    rankingMap.set(key, current);
-
     const classStat = classMap.get(characterClass) ?? {
       characterClass,
       wins: 0,

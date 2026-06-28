@@ -27,8 +27,42 @@ async function ensureSchema(): Promise<void> {
       id TEXT PRIMARY KEY,
       username TEXT NOT NULL UNIQUE,
       password_hash TEXT NOT NULL,
-      role TEXT NOT NULL CHECK (role IN ('admin', 'judge')),
+      role TEXT,
       display_name TEXT NOT NULL,
+      active BOOLEAN NOT NULL DEFAULT TRUE,
+      created_at TIMESTAMPTZ NOT NULL
+    )
+  `;
+
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS roles JSONB`;
+  await sql`
+    UPDATE users
+    SET roles = to_jsonb(ARRAY[role])
+    WHERE roles IS NULL AND role IS NOT NULL
+  `;
+  await sql`
+    UPDATE users
+    SET email = username || '@arena.local'
+    WHERE email IS NULL
+  `;
+  await sql`
+    UPDATE users
+    SET roles = '["player"]'::jsonb
+    WHERE roles IS NULL
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS characters (
+      id TEXT PRIMARY KEY,
+      player_id TEXT NOT NULL REFERENCES users (id),
+      name TEXT NOT NULL,
+      character_class TEXT NOT NULL,
+      subclass TEXT,
+      description TEXT,
+      portrait_url TEXT,
+      generation TEXT,
+      is_dead BOOLEAN NOT NULL DEFAULT FALSE,
       active BOOLEAN NOT NULL DEFAULT TRUE,
       created_at TIMESTAMPTZ NOT NULL
     )

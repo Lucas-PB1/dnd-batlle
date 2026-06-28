@@ -6,7 +6,8 @@ export default async function HomePage() {
 
   return (
     <HomeDashboard
-      ranking={stats.ranking}
+      characterRanking={stats.characterRanking}
+      playerRanking={stats.playerRanking}
       classStats={stats.classStats}
       totalDuels={stats.totalDuels}
       recentDuels={stats.recentDuels}
