@@ -6,12 +6,16 @@ export const CHARACTER_CLASSES = [
   'Druida',
   'Feiticeiro',
   'Ladino',
-  'Lutador',
+  'Guerreiro',
   'Mago',
   'Monge',
   'Paladino',
   'Patrulheiro',
   'Artífice',
+  'Pugilista',
+  'Irlliger',
+  'Gunslinger',
+  'Caçador de Monstros'
 ] as const;
 
 export const BRACKET_BY_CLASS: Record<string, 'A' | 'B' | 'C'> = {
@@ -19,7 +23,11 @@ export const BRACKET_BY_CLASS: Record<string, 'A' | 'B' | 'C'> = {
   Ladino: 'A',
   Lutador: 'A',
   Monge: 'A',
+  Pugilista: 'A',
   Patrulheiro: 'A',
+  Irlliger: 'A',
+  Gunslinger: 'A',
+  'Caçador de Monstros': 'A',
   Paladino: 'B',
   Clérigo: 'B',
   Druida: 'B',
