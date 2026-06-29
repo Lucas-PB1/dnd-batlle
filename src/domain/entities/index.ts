@@ -86,6 +86,7 @@ export interface CharacterRankingEntry {
   playerDisplayName?: string;
   characterClass: string;
   subclass?: string;
+  description?: string;
   bracket: Bracket;
   points: number;
   wins: number;

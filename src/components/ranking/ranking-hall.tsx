@@ -13,6 +13,19 @@ import type { LeaderboardRowData } from '@/components/ranking/ranking-leaderboar
 
 export type HallEntry = LeaderboardRowData;
 
+function HeroQuote({ quote, large = false }: { quote: string; large?: boolean }) {
+  return (
+    <p
+      className={cn(
+        'text-accent-secondary/90 italic leading-snug',
+        large ? 'mt-2 text-sm sm:text-base' : 'mt-1 text-xs line-clamp-2',
+      )}
+    >
+      &ldquo;{quote}&rdquo;
+    </p>
+  );
+}
+
 function MetaTag({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
     <span
@@ -108,8 +121,9 @@ function ChampionCard({ entry, maxPoints }: { entry: HallEntry; maxPoints: numbe
               <MetaTag className="border-amber-500/20 text-amber-200/80">{ARENA_COPY.tiedRank}</MetaTag>
             )}
           </div>
+          {entry.quote && <HeroQuote quote={entry.quote} large />}
           {entry.subtitle && (
-            <p className="text-muted mt-0.5 text-sm">{entry.subtitle}</p>
+            <p className="text-muted mt-1 text-sm">{entry.subtitle}</p>
           )}
           <div className="mt-2 flex flex-wrap gap-1.5">
             {entry.meta && <MetaTag>{entry.meta}</MetaTag>}
@@ -154,6 +168,7 @@ function RankingRow({ entry, maxPoints }: { entry: HallEntry; maxPoints: number 
           <p className="truncate font-medium">{entry.title}</p>
           {isPodium && <RankTierBadge rank={entry.rank} />}
         </div>
+        {entry.quote && <HeroQuote quote={entry.quote} />}
         {entry.subtitle && (
           <p className="text-muted truncate text-xs">{entry.subtitle}</p>
         )}

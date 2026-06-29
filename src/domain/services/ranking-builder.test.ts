@@ -28,11 +28,16 @@ const character: Character = {
 
 describe('ranking-builder', () => {
   it('includes registered characters with zero glory before any duel', () => {
-    const ranking = mergeCharacterRankings([], [character], [player]);
+    const ranking = mergeCharacterRankings(
+      [],
+      [{ ...character, description: 'A arena me chama.' }],
+      [player],
+    );
 
     expect(ranking).toHaveLength(1);
     expect(ranking[0].points).toBe(0);
     expect(ranking[0].characterName).toBe('Thorin');
+    expect(ranking[0].description).toBe('A arena me chama.');
   });
 
   it('sums player glory automatically from character results', () => {

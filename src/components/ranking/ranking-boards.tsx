@@ -16,6 +16,7 @@ function toCharacterRows(
     title: entry.characterName,
     subtitle: entry.playerDisplayName,
     meta: `${entry.characterClass} · ${ARENA_COPY.bracket} ${entry.bracket}`,
+    quote: entry.description,
     points: entry.points,
     record: `${entry.wins}V/${entry.draws}E/${entry.losses}D`,
     duels: entry.duels,

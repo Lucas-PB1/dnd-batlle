@@ -106,6 +106,7 @@ function applyCharacterResult(
     playerDisplayName: entry.playerDisplayName,
     characterClass: entry.characterClass,
     subclass: entry.subclass,
+    description: entry.description,
     bracket: entry.bracket,
     points: 0,
     wins: 0,
@@ -113,6 +114,10 @@ function applyCharacterResult(
     losses: 0,
     duels: 0,
   };
+
+  if (!current.description && entry.description) {
+    current.description = entry.description;
+  }
 
   current.points += points;
   current.duels += 1;

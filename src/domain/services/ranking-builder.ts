@@ -36,11 +36,27 @@ export function mergeCharacterRankings(
     map.set(key, entry);
   }
 
+  const characterById = new Map(characters.map((item) => [item.id, item]));
+
+  for (const entry of map.values()) {
+    if (!entry.characterId) continue;
+    const source = characterById.get(entry.characterId);
+    if (source?.description && !entry.description) {
+      entry.description = source.description;
+    }
+  }
+
   for (const character of characters) {
     if (!character.active) continue;
 
     const key = character.id;
-    if (map.has(key)) continue;
+    const existing = map.get(key);
+    if (existing) {
+      if (character.description && !existing.description) {
+        existing.description = character.description;
+      }
+      continue;
+    }
 
     const bracket = BRACKET_BY_CLASS[character.characterClass] ?? 'A';
     map.set(key, {
@@ -50,6 +66,7 @@ export function mergeCharacterRankings(
       playerDisplayName: userMap.get(character.playerId),
       characterClass: character.characterClass,
       subclass: character.subclass,
+      description: character.description,
       bracket,
       points: 0,
       wins: 0,

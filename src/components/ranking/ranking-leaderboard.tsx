@@ -14,6 +14,7 @@ export interface LeaderboardRowData {
   title: string;
   subtitle?: string;
   meta?: string;
+  quote?: string;
   points: number;
   record: string;
   duels: number;

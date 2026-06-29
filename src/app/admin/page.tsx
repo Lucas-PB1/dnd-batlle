@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardTitle } from '@/components/ui/card';
 import { Badge, Input, Label, Select } from '@/components/ui/form';
 import { Tabs } from '@/components/ui/tabs';
+import { Modal } from '@/components/ui/modal';
 import type { Character, Duel, UserRole } from '@/domain/entities';
 import { CHARACTER_CLASSES } from '@/shared/constants/game-rules';
 import {
@@ -473,71 +474,76 @@ export default function AdminPage() {
             </div>
           </Card>
 
-          {editingUser && (
-            <Card className="lg:col-span-2">
-              <CardTitle>Editar {editingUser.displayName}</CardTitle>
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <div>
-                  <Label>{ARENA_COPY.displayName}</Label>
-                  <Input
-                    value={userDraft.displayName}
-                    onChange={(e) => setUserDraft({ ...userDraft, displayName: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label>E-mail</Label>
-                  <Input
-                    type="email"
-                    value={userDraft.email}
-                    onChange={(e) => setUserDraft({ ...userDraft, email: e.target.value })}
-                  />
-                </div>
-                <div className="sm:col-span-2">
-                  <Label>Papéis</Label>
-                  <RoleCheckboxes
-                    value={userDraft.roles}
-                    onChange={(roles) => setUserDraft({ ...userDraft, roles })}
-                  />
-                </div>
-                <div className="sm:col-span-2">
-                  <label className="inline-flex items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={userDraft.active}
-                      onChange={(e) => setUserDraft({ ...userDraft, active: e.target.checked })}
-                      className="accent-accent"
-                    />
-                    Conta ativa
-                  </label>
-                </div>
-                <div className="sm:col-span-2">
-                  <Label>{ARENA_COPY.resetPassword}</Label>
-                  <div className="flex flex-col gap-2 sm:flex-row">
+          <Modal
+            open={Boolean(editingUser)}
+            onClose={() => setEditingUser(null)}
+            title={editingUser ? `Editar ${editingUser.displayName}` : ''}
+          >
+            {editingUser && (
+              <>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <Label>{ARENA_COPY.displayName}</Label>
                     <Input
-                      type="password"
-                      placeholder={ARENA_COPY.resetPasswordHint}
-                      value={userDraft.password}
-                      onChange={(e) => setUserDraft({ ...userDraft, password: e.target.value })}
+                      value={userDraft.displayName}
+                      onChange={(e) => setUserDraft({ ...userDraft, displayName: e.target.value })}
                     />
-                    <Button type="button" variant="secondary" onClick={() => void resetPassword()}>
-                      {ARENA_COPY.resetPassword}
-                    </Button>
+                  </div>
+                  <div>
+                    <Label>E-mail</Label>
+                    <Input
+                      type="email"
+                      value={userDraft.email}
+                      onChange={(e) => setUserDraft({ ...userDraft, email: e.target.value })}
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Label>Papéis</Label>
+                    <RoleCheckboxes
+                      value={userDraft.roles}
+                      onChange={(roles) => setUserDraft({ ...userDraft, roles })}
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="inline-flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={userDraft.active}
+                        onChange={(e) => setUserDraft({ ...userDraft, active: e.target.checked })}
+                        className="accent-accent"
+                      />
+                      Conta ativa
+                    </label>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Label>{ARENA_COPY.resetPassword}</Label>
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <Input
+                        type="password"
+                        placeholder={ARENA_COPY.resetPasswordHint}
+                        value={userDraft.password}
+                        onChange={(e) => setUserDraft({ ...userDraft, password: e.target.value })}
+                      />
+                      <Button type="button" variant="secondary" onClick={() => void resetPassword()}>
+                        {ARENA_COPY.resetPassword}
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <Button onClick={() => void saveUser()}>{ARENA_COPY.save}</Button>
-                {currentUserId !== editingUser.id && (
-                  <Button variant="ghost" onClick={() => void removeUser(editingUser.id)}>
-                    {ARENA_COPY.delete}
+                <div className="mt-6 flex flex-wrap gap-2 border-t border-white/[0.06] pt-4">
+                  <Button onClick={() => void saveUser()}>{ARENA_COPY.save}</Button>
+                  {currentUserId !== editingUser.id && (
+                    <Button variant="danger" onClick={() => void removeUser(editingUser.id)}>
+                      {ARENA_COPY.delete}
+                    </Button>
+                  )}
+                  <Button variant="ghost" onClick={() => setEditingUser(null)}>
+                    {ARENA_COPY.cancel}
                   </Button>
-                )}
-                <Button variant="ghost" onClick={() => setEditingUser(null)}>
-                  {ARENA_COPY.cancel}
-                </Button>
-              </div>
-            </Card>
-          )}
+                </div>
+              </>
+            )}
+          </Modal>
         </div>
       )}
 
@@ -583,79 +589,84 @@ export default function AdminPage() {
             </div>
           </Card>
 
-          {editingCharacter && (
-            <Card>
-              <CardTitle>
-                {ARENA_COPY.editHero}: {editingCharacter.name}
-              </CardTitle>
-              <p className="text-muted text-sm">
-                Dono: {editingCharacter.playerDisplayName} ({editingCharacter.playerEmail})
-              </p>
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <div>
-                  <Label>Nome</Label>
-                  <Input
-                    value={characterDraft.name}
-                    onChange={(e) => setCharacterDraft({ ...characterDraft, name: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label>Classe</Label>
-                  <Select
-                    value={characterDraft.characterClass}
-                    onChange={(e) =>
-                      setCharacterDraft({ ...characterDraft, characterClass: e.target.value })
-                    }
-                  >
-                    {CHARACTER_CLASSES.map((item) => (
-                      <option key={item} value={item}>
-                        {item}
-                      </option>
-                    ))}
-                  </Select>
-                </div>
-                <div>
-                  <Label>Subclasse</Label>
-                  <Input
-                    value={characterDraft.subclass}
-                    onChange={(e) =>
-                      setCharacterDraft({ ...characterDraft, subclass: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="flex flex-col gap-2 sm:col-span-2">
-                  <label className="inline-flex items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={characterDraft.isDead}
-                      onChange={(e) =>
-                        setCharacterDraft({ ...characterDraft, isDead: e.target.checked })
-                      }
-                      className="accent-accent"
+          <Modal
+            open={Boolean(editingCharacter)}
+            onClose={() => setEditingCharacter(null)}
+            title={editingCharacter ? `${ARENA_COPY.editHero}: ${editingCharacter.name}` : ''}
+            description={
+              editingCharacter
+                ? `Dono: ${editingCharacter.playerDisplayName} (${editingCharacter.playerEmail})`
+                : undefined
+            }
+          >
+            {editingCharacter && (
+              <>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <Label>Nome</Label>
+                    <Input
+                      value={characterDraft.name}
+                      onChange={(e) => setCharacterDraft({ ...characterDraft, name: e.target.value })}
                     />
-                    Morto na crônica
-                  </label>
-                  <label className="inline-flex items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={characterDraft.active}
+                  </div>
+                  <div>
+                    <Label>Classe</Label>
+                    <Select
+                      value={characterDraft.characterClass}
                       onChange={(e) =>
-                        setCharacterDraft({ ...characterDraft, active: e.target.checked })
+                        setCharacterDraft({ ...characterDraft, characterClass: e.target.value })
                       }
-                      className="accent-accent"
+                    >
+                      {CHARACTER_CLASSES.map((item) => (
+                        <option key={item} value={item}>
+                          {item}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Label>Subclasse</Label>
+                    <Input
+                      value={characterDraft.subclass}
+                      onChange={(e) =>
+                        setCharacterDraft({ ...characterDraft, subclass: e.target.value })
+                      }
                     />
-                    Ativo no panteão
-                  </label>
+                  </div>
+                  <div className="flex flex-col gap-2 sm:col-span-2">
+                    <label className="inline-flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={characterDraft.isDead}
+                        onChange={(e) =>
+                          setCharacterDraft({ ...characterDraft, isDead: e.target.checked })
+                        }
+                        className="accent-accent"
+                      />
+                      Morto na crônica
+                    </label>
+                    <label className="inline-flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={characterDraft.active}
+                        onChange={(e) =>
+                          setCharacterDraft({ ...characterDraft, active: e.target.checked })
+                        }
+                        className="accent-accent"
+                      />
+                      Ativo no panteão
+                    </label>
+                  </div>
                 </div>
-              </div>
-              <div className="mt-4 flex gap-2">
-                <Button onClick={() => void saveCharacter()}>{ARENA_COPY.save}</Button>
-                <Button variant="ghost" onClick={() => setEditingCharacter(null)}>
-                  {ARENA_COPY.cancel}
-                </Button>
-              </div>
-            </Card>
-          )}
+                <div className="mt-6 flex flex-wrap gap-2 border-t border-white/[0.06] pt-4">
+                  <Button onClick={() => void saveCharacter()}>{ARENA_COPY.save}</Button>
+                  <Button variant="ghost" onClick={() => setEditingCharacter(null)}>
+                    {ARENA_COPY.cancel}
+                  </Button>
+                </div>
+              </>
+            )}
+          </Modal>
         </div>
       )}
 
