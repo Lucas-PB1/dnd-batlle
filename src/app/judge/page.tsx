@@ -8,10 +8,13 @@ import { Card, CardDescription, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/form';
 import type { Duel } from '@/domain/entities';
 import { ARENA_COPY, duelStatusLabel, duelTypeLabel } from '@/shared/constants/arena-copy';
+import { canDeleteDuel } from '@/shared/utils/duel-permissions';
 
 export default function JudgePage() {
   const router = useRouter();
   const [duels, setDuels] = useState<Duel[]>([]);
+  const [userId, setUserId] = useState('');
+  const [roles, setRoles] = useState<string[]>([]);
   const [link, setLink] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -35,6 +38,9 @@ export default function JudgePage() {
         router.push('/login');
         return;
       }
+
+      setUserId(me.session.userId);
+      setRoles(me.session.roles ?? []);
 
       const nextDuels = await fetchDuels();
       if (!active) return;
@@ -81,6 +87,68 @@ export default function JudgePage() {
 
   if (loading) return <p className="text-muted">Carregando...</p>;
 
+  const myDuels = duels.filter((duel) => duel.judgeId === userId);
+  const otherCompleted = duels.filter(
+    (duel) => duel.judgeId !== userId && duel.status === 'completed',
+  );
+
+  function renderDuelCard(duel: Duel, owned: boolean) {
+    const canDelete =
+      userId &&
+      canDeleteDuel(duel, userId, roles as ('admin' | 'judge' | 'player')[]);
+
+    return (
+      <div
+        key={duel.id}
+        className="border-card-border/70 flex flex-col gap-3 rounded-xl border bg-stone-950/30 p-4 sm:flex-row sm:items-center sm:justify-between"
+      >
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="font-medium break-words">
+              {duel.playerA?.name ?? `${ARENA_COPY.cornerA} ?`} vs{' '}
+              {duel.playerB?.name ?? `${ARENA_COPY.cornerB} ?`}
+            </p>
+            <Badge tone={duel.status === 'completed' ? 'success' : 'warning'}>
+              {duelStatusLabel(duel.status)}
+            </Badge>
+            <Badge tone="default">{owned ? ARENA_COPY.myDuel : ARENA_COPY.otherJudgeDuel}</Badge>
+          </div>
+          <p className="text-muted text-sm">
+            {duel.judgeName} · Runa {duel.token} · {duelTypeLabel(duel.isClassified)}
+            {duel.result
+              ? ` · ${duel.result.pointsA}/${duel.result.pointsB} ${ARENA_COPY.gloryShort}`
+              : ''}
+          </p>
+        </div>
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+          {owned && duel.status !== 'completed' && (
+            <Link href={`/duel/${duel.token}`} className="w-full sm:w-auto">
+              <Button variant="secondary" className="w-full sm:w-auto">
+                {ARENA_COPY.convocationRune}
+              </Button>
+            </Link>
+          )}
+          <Link href={`/judge/duel/${duel.id}`} className="w-full sm:w-auto">
+            <Button className="w-full sm:w-auto">
+              {duel.status === 'completed'
+                ? ARENA_COPY.editChronicle
+                : ARENA_COPY.registerVerdict}
+            </Button>
+          </Link>
+          {canDelete && (
+            <Button
+              variant="ghost"
+              className="w-full sm:w-auto"
+              onClick={() => void removeDuel(duel.id)}
+            >
+              {ARENA_COPY.delete}
+            </Button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -118,57 +186,24 @@ export default function JudgePage() {
 
       <Card>
         <CardTitle>{ARENA_COPY.judgeChronicles}</CardTitle>
+        <CardDescription>{ARENA_COPY.judgeChroniclesAllHint}</CardDescription>
         <div className="mt-4 space-y-3">
-          {duels.length === 0 && (
+          {myDuels.length === 0 && (
             <p className="text-muted text-sm">{ARENA_COPY.noDuelsCreated}</p>
           )}
-          {duels.map((duel) => (
-            <div
-              key={duel.id}
-              className="border-card-border/70 flex flex-col gap-3 rounded-xl border bg-stone-950/30 p-4 sm:flex-row sm:items-center sm:justify-between"
-            >
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="font-medium break-words">
-                    {duel.playerA?.name ?? `${ARENA_COPY.cornerA} ?`} vs{' '}
-                    {duel.playerB?.name ?? `${ARENA_COPY.cornerB} ?`}
-                  </p>
-                  <Badge tone={duel.status === 'completed' ? 'success' : 'warning'}>
-                    {duelStatusLabel(duel.status)}
-                  </Badge>
-                </div>
-                <p className="text-muted text-sm">
-                  Runa {duel.token} · {duelTypeLabel(duel.isClassified)}
-                  {duel.result
-                    ? ` · ${duel.result.pointsA}/${duel.result.pointsB} ${ARENA_COPY.gloryShort}`
-                    : ''}
-                </p>
-              </div>
-              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-                <Link href={`/duel/${duel.token}`} className="w-full sm:w-auto">
-                  <Button variant="secondary" className="w-full sm:w-auto">
-                    {ARENA_COPY.convocationRune}
-                  </Button>
-                </Link>
-                <Link href={`/judge/duel/${duel.id}`} className="w-full sm:w-auto">
-                  <Button className="w-full sm:w-auto">
-                    {duel.status === 'completed'
-                      ? ARENA_COPY.editChronicle
-                      : ARENA_COPY.registerVerdict}
-                  </Button>
-                </Link>
-                <Button
-                  variant="ghost"
-                  className="w-full sm:w-auto"
-                  onClick={() => void removeDuel(duel.id)}
-                >
-                  {ARENA_COPY.delete}
-                </Button>
-              </div>
-            </div>
-          ))}
+          {myDuels.map((duel) => renderDuelCard(duel, true))}
         </div>
       </Card>
+
+      {otherCompleted.length > 0 && (
+        <Card>
+          <CardTitle>{ARENA_COPY.judgeChroniclesAll}</CardTitle>
+          <CardDescription>Combates selados por outros árbitros — glória editável.</CardDescription>
+          <div className="mt-4 space-y-3">
+            {otherCompleted.map((duel) => renderDuelCard(duel, false))}
+          </div>
+        </Card>
+      )}
     </div>
   );
 }

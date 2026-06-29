@@ -19,6 +19,18 @@ export class EmailService {
     );
   }
 
+  async sendPasswordResetNotification(
+    email: string,
+    displayName: string,
+    newPassword: string,
+  ): Promise<void> {
+    await this.send(
+      email,
+      'Arena Duel — senha redefinida',
+      `<p>Olá ${displayName},</p><p>O guardião do coliseu redefiniu sua senha.</p><p>Nova senha temporária: <strong>${newPassword}</strong></p><p>Altere-a após o próximo acesso.</p>`,
+    );
+  }
+
   async sendDuelResultNotification(
     email: string,
     displayName: string,

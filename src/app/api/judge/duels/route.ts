@@ -8,7 +8,7 @@ export async function GET() {
     const session = await requireSession(['judge']);
     const duels = await ServiceFactory.create()
       .getDuelService()
-      .getDuelsByJudge(session.userId);
+      .getDuelsForJudge(session.userId);
     return jsonOk({ duels });
   } catch (error) {
     return handleApiError(error);

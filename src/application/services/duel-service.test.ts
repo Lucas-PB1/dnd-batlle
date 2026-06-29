@@ -65,7 +65,8 @@ describe('DuelService integration', () => {
 
     const completed = await duelService.completeDuel({
       duelId: duel.id,
-      judgeId: judge.id,
+      actorId: judge.id,
+      roles: ['judge'],
       arena: 6,
       outcome: 'player_a',
       rounds: 12,
@@ -129,7 +130,8 @@ describe('DuelService integration', () => {
 
     const completed = await duelService.completeDuel({
       duelId: duel.id,
-      judgeId: judge.id,
+      actorId: judge.id,
+      roles: ['judge'],
       arena: 2,
       outcome: 'player_a',
       rounds: 8,
@@ -181,7 +183,7 @@ describe('DuelService integration', () => {
       characterClass: 'Ladino',
     });
 
-    await characterService.delete(character.id, player.id);
+    await characterService.delete(character.id, { userId: player.id, roles: ['player'] });
 
     const roster = await characterService.listByPlayer(player.id);
     expect(roster).toHaveLength(0);
@@ -233,5 +235,155 @@ describe('DuelService integration', () => {
         playerId: player.id,
       }),
     ).rejects.toThrow('Este herói já está inscrito no outro lado da arena');
+  });
+
+  it('allows another judge to edit a completed duel', async () => {
+    const factory = ServiceFactory.create(dataDir);
+    const adminService = factory.getAdminService();
+    const authService = factory.getAuthService();
+    const duelService = factory.getDuelService();
+    const characterService = factory.getCharacterService();
+
+    await authService.ensureDefaultAdmin();
+    const judgeA = await adminService.createJudge({
+      email: 'juiz-a@test.local',
+      password: '1234',
+      displayName: 'Juiz A',
+    });
+    const judgeB = await adminService.createJudge({
+      email: 'juiz-b@test.local',
+      password: '1234',
+      displayName: 'Juiz B',
+    });
+
+    const player = await authService.register({
+      email: 'hero3@test.local',
+      password: '1234',
+      displayName: 'Hero 3',
+    });
+
+    const character = await characterService.create({
+      playerId: player.id,
+      name: 'Ranger',
+      characterClass: 'Patrulheiro',
+    });
+
+    const duel = await duelService.createDuel({
+      judgeId: judgeA.id,
+      isClassified: true,
+    });
+
+    await duelService.registerPlayer({
+      token: duel.token,
+      slot: 'A',
+      characterId: character.id,
+      playerId: player.id,
+    });
+
+    await duelService.registerPlayer({
+      token: duel.token,
+      slot: 'B',
+      name: 'Mob',
+      characterClass: 'Lutador',
+    });
+
+    await duelService.completeDuel({
+      duelId: duel.id,
+      actorId: judgeA.id,
+      roles: ['judge'],
+      arena: 1,
+      outcome: 'player_a',
+      rounds: 5,
+    });
+
+    const updated = await duelService.updateDuel({
+      duelId: duel.id,
+      actorId: judgeB.id,
+      roles: ['judge'],
+      pointsA: 4,
+      pointsB: 0,
+    });
+
+    expect(updated.result?.pointsA).toBe(4);
+  });
+
+  it('blocks another judge from completing an in-progress duel', async () => {
+    const factory = ServiceFactory.create(dataDir);
+    const adminService = factory.getAdminService();
+    const authService = factory.getAuthService();
+    const duelService = factory.getDuelService();
+
+    await authService.ensureDefaultAdmin();
+    const judgeA = await adminService.createJudge({
+      email: 'juiz-c@test.local',
+      password: '1234',
+      displayName: 'Juiz C',
+    });
+    const judgeB = await adminService.createJudge({
+      email: 'juiz-d@test.local',
+      password: '1234',
+      displayName: 'Juiz D',
+    });
+
+    const duel = await duelService.createDuel({
+      judgeId: judgeA.id,
+      isClassified: true,
+    });
+
+    await duelService.registerPlayer({
+      token: duel.token,
+      slot: 'A',
+      name: 'A',
+      characterClass: 'Lutador',
+    });
+
+    await duelService.registerPlayer({
+      token: duel.token,
+      slot: 'B',
+      name: 'B',
+      characterClass: 'Mago',
+    });
+
+    await expect(
+      duelService.completeDuel({
+        duelId: duel.id,
+        actorId: judgeB.id,
+        roles: ['judge'],
+        arena: 1,
+        outcome: 'player_a',
+        rounds: 3,
+      }),
+    ).rejects.toThrow('Sem permissão');
+  });
+
+  it('allows admin to edit any character', async () => {
+    const factory = ServiceFactory.create(dataDir);
+    const authService = factory.getAuthService();
+    const adminService = factory.getAdminService();
+    const characterService = factory.getCharacterService();
+
+    await authService.ensureDefaultAdmin();
+    const admin = (await adminService.listUsers()).find((user) => user.roles.includes('admin'));
+    if (!admin) throw new Error('Admin not found');
+
+    const player = await authService.register({
+      email: 'edit@test.local',
+      password: '1234',
+      displayName: 'Edit Player',
+    });
+
+    const character = await characterService.create({
+      playerId: player.id,
+      name: 'Old Name',
+      characterClass: 'Ladino',
+    });
+
+    const updated = await characterService.update(
+      character.id,
+      { userId: admin.id, roles: ['admin'] },
+      { name: 'New Name' },
+    );
+
+    expect(updated.name).toBe('New Name');
   });
 });

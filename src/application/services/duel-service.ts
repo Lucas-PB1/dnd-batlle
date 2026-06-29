@@ -9,6 +9,11 @@ import { calculateDuelPoints } from '@/domain/services/scoring-service';
 import { EmailService } from '@/application/services/email-service';
 import { BRACKET_BY_CLASS } from '@/shared/constants/game-rules';
 import { hasRole } from '@/shared/utils/roles';
+import {
+  canCompleteDuel,
+  canDeleteDuel,
+  canManageDuel,
+} from '@/shared/utils/duel-permissions';
 
 export interface CreateDuelInput {
   judgeId: string;
@@ -28,7 +33,8 @@ export interface RegisterPlayerInput {
 
 export interface CompleteDuelInput {
   duelId: string;
-  judgeId: string;
+  actorId: string;
+  roles: UserRole[];
   arena: number;
   outcome: DuelOutcome;
   rounds: number;
@@ -65,10 +71,6 @@ function resolveBracket(characterClass: string) {
 
 function generateToken(): string {
   return randomUUID().replace(/-/g, '').slice(0, 12);
-}
-
-function canManageDuel(duel: Duel, actorId: string, roles: UserRole[]): boolean {
-  return roles.includes('admin') || (roles.includes('judge') && duel.judgeId === actorId);
 }
 
 function buildResultPoints(
@@ -141,6 +143,13 @@ export class DuelService {
     return duels.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }
 
+  async getDuelsForJudge(judgeId: string): Promise<Duel[]> {
+    const duels = await this.duelRepository.findAll();
+    return duels
+      .filter((duel) => duel.status === 'completed' || duel.judgeId === judgeId)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+
   async getDuelsByJudge(judgeId: string): Promise<Duel[]> {
     const duels = await this.duelRepository.findAll();
     return duels
@@ -178,7 +187,9 @@ export class DuelService {
   async completeDuel(input: CompleteDuelInput): Promise<Duel> {
     const duel = await this.duelRepository.findById(input.duelId);
     if (!duel) throw new Error('Duelo não encontrado');
-    if (duel.judgeId !== input.judgeId) throw new Error('Sem permissão');
+    if (!canCompleteDuel(duel, input.actorId, input.roles)) {
+      throw new Error('Sem permissão');
+    }
     if (!duel.playerA || !duel.playerB) throw new Error('Jogadores incompletos');
     if (duel.status === 'completed') throw new Error('Duelo já finalizado');
 
@@ -255,7 +266,7 @@ export class DuelService {
   async deleteDuel(input: DeleteDuelInput): Promise<void> {
     const duel = await this.duelRepository.findById(input.duelId);
     if (!duel) throw new Error('Duelo não encontrado');
-    if (!canManageDuel(duel, input.actorId, input.roles)) {
+    if (!canDeleteDuel(duel, input.actorId, input.roles)) {
       throw new Error('Sem permissão');
     }
 

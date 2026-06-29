@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto';
 import bcrypt from 'bcryptjs';
-import type { IUserRepository } from '@/domain/repositories';
-import type { User, UserRole } from '@/domain/entities';
+import type { ICharacterRepository, IUserRepository } from '@/domain/repositories';
+import type { Character, User, UserRole } from '@/domain/entities';
 import { EmailService } from '@/application/services/email-service';
 
 export interface CreateUserInput {
@@ -25,9 +25,15 @@ function withoutPasswordHash(user: User): Omit<User, 'passwordHash'> {
   return safeUser;
 }
 
+export interface CharacterWithOwner extends Character {
+  playerDisplayName: string;
+  playerEmail: string;
+}
+
 export class AdminService {
   constructor(
     private readonly userRepository: IUserRepository,
+    private readonly characterRepository: ICharacterRepository,
     private readonly emailService: EmailService,
   ) {}
 
@@ -104,6 +110,36 @@ export class AdminService {
     }
 
     return withoutPasswordHash(saved);
+  }
+
+  async listCharacters(includeInactive = true): Promise<CharacterWithOwner[]> {
+    const [characters, users] = await Promise.all([
+      this.characterRepository.findAll(),
+      this.userRepository.findAll(),
+    ]);
+
+    const usersById = new Map(users.map((user) => [user.id, user]));
+
+    return characters
+      .filter((character) => includeInactive || character.active)
+      .map((character) => {
+        const owner = usersById.get(character.playerId);
+        return {
+          ...character,
+          playerDisplayName: owner?.displayName ?? 'Desconhecido',
+          playerEmail: owner?.email ?? '',
+        };
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  async resetUserPassword(
+    userId: string,
+    password: string,
+  ): Promise<Omit<User, 'passwordHash'>> {
+    const user = await this.updateUser(userId, { password });
+    await this.emailService.sendPasswordResetNotification(user.email, user.displayName, password);
+    return user;
   }
 
   async toggleJudgeActive(

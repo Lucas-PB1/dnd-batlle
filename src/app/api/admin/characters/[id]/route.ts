@@ -19,7 +19,7 @@ export async function PATCH(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
-    const session = await requireSession(['player']);
+    const session = await requireSession(['admin']);
     const { id } = await context.params;
     const body = updateSchema.parse(await request.json());
     const character = await ServiceFactory.create()
@@ -36,7 +36,7 @@ export async function DELETE(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
-    const session = await requireSession(['player']);
+    const session = await requireSession(['admin']);
     const { id } = await context.params;
     await ServiceFactory.create()
       .getCharacterService()

@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { requireSession } from '@/lib/auth';
 import { handleApiError, jsonOk } from '@/lib/api-response';
 import { ServiceFactory } from '@/infrastructure/factories/service-factory';
+import { canCompleteDuel, canViewDuel } from '@/shared/utils/duel-permissions';
 import { hasAnyRole } from '@/shared/utils/roles';
 
 const completeSchema = z.object({
@@ -27,9 +28,7 @@ async function getAccessibleDuel(id: string, session: Awaited<ReturnType<typeof 
   const duel = await duelService.getDuelById(id);
   if (!duel) return null;
 
-  if (session.roles.includes('admin')) return duel;
-  if (session.roles.includes('judge') && duel.judgeId === session.userId) return duel;
-
+  if (canViewDuel(duel, session.userId, session.roles)) return duel;
   return null;
 }
 
@@ -79,14 +78,19 @@ export async function PATCH(
       return jsonOk({ duel: updated });
     }
 
-    if (!hasAnyRole(session, ['judge']) || duel.judgeId !== session.userId) {
+    if (!canCompleteDuel(duel, session.userId, session.roles)) {
+      return handleApiError(new Error('Sem permissão'));
+    }
+
+    if (!hasAnyRole(session, ['judge', 'admin'])) {
       return handleApiError(new Error('Sem permissão'));
     }
 
     const body = completeSchema.parse(payload);
     const completed = await duelService.completeDuel({
       duelId: id,
-      judgeId: session.userId,
+      actorId: session.userId,
+      roles: session.roles,
       ...body,
     });
 

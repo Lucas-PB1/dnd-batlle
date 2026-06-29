@@ -48,6 +48,7 @@ export class ServiceFactory {
     if (!this.adminService) {
       this.adminService = new AdminService(
         this.repositoryFactory.getUserRepository(),
+        this.repositoryFactory.getCharacterRepository(),
         this.getEmailService(),
       );
     }
