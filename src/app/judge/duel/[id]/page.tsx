@@ -8,7 +8,8 @@ import { Card, CardDescription, CardTitle } from '@/components/ui/card';
 import { Input, Label, Select } from '@/components/ui/form';
 import type { Duel, DuelOutcome } from '@/domain/entities';
 import { calculateDuelPoints } from '@/domain/services/scoring-service';
-import { ARENAS } from '@/shared/constants/game-rules';
+import { useArenas } from '@/hooks/use-arenas';
+import { getArenaByDice } from '@/lib/arena-utils';
 import { ARENA_COPY, duelTypeLabel } from '@/shared/constants/arena-copy';
 
 function recalculateGlory(duel: Duel, outcome: DuelOutcome) {
@@ -49,6 +50,7 @@ export default function JudgeDuelPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [backHref, setBackHref] = useState('/judge');
+  const { activeArenas } = useArenas();
 
   useEffect(() => {
     async function load() {
@@ -156,7 +158,7 @@ export default function JudgeDuelPage() {
   if (loading) return <p className="text-muted">Carregando...</p>;
   if (!duel) return <p className="text-danger">Duelo não encontrado.</p>;
 
-  const selectedArena = ARENAS[Number(arena)];
+  const selectedArena = getArenaByDice(activeArenas, Number(arena));
   const nameA = duel.playerA?.name ?? ARENA_COPY.cornerA;
   const nameB = duel.playerB?.name ?? ARENA_COPY.cornerB;
   const isCompleted = duel.status === 'completed';
@@ -208,14 +210,17 @@ export default function JudgeDuelPage() {
             <div>
               <Label>{ARENA_COPY.arenaField}</Label>
               <Select value={arena} onChange={(e) => setArena(e.target.value)}>
-                {Object.entries(ARENAS).map(([key, value]) => (
-                  <option key={key} value={key}>
-                    {key}. {value.name}
+                {activeArenas.map((item) => (
+                  <option key={item.id} value={item.diceValue}>
+                    {item.diceValue}. {item.name}
                   </option>
                 ))}
               </Select>
               {selectedArena && (
-                <p className="text-muted mt-1 text-xs">{selectedArena.effect}</p>
+                <div className="text-muted mt-1 space-y-1 text-xs">
+                  <p>{selectedArena.effect}</p>
+                  {selectedArena.description && <p>{selectedArena.description}</p>}
+                </div>
               )}
             </div>
 

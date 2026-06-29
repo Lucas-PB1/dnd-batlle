@@ -17,6 +17,7 @@ import {
   PlayerRankingBoard,
 } from '@/components/ranking/ranking-boards';
 import { Card, CardDescription, CardTitle } from '@/components/ui/card';
+import { TabPanel, Tabs } from '@/components/ui/tabs';
 import { cn } from '@/lib/cn';
 import type {
   CharacterRankingEntry,
@@ -24,12 +25,13 @@ import type {
   CompletedDuelSummary,
   PlayerRankingEntry,
 } from '@/domain/entities';
-import { ARENAS } from '@/shared/constants/game-rules';
+import { useArenas } from '@/hooks/use-arenas';
+import { getArenaLabel } from '@/lib/arena-utils';
 import { ARENA_COPY } from '@/shared/constants/arena-copy';
 
 type HeroIcon = ComponentType<SVGProps<SVGSVGElement>>;
 
-const RANKING_MODES = [
+const RANKING_TABS = [
   { id: 'characters', icon: ShieldCheckIcon, label: ARENA_COPY.characterTab },
   { id: 'players', icon: UserGroupIcon, label: ARENA_COPY.playerTab },
 ] as const;
@@ -90,45 +92,6 @@ function StatTile({
         <p className="text-muted text-[10px] tracking-wide uppercase">{label}</p>
         <p className="text-accent text-xl font-bold tabular-nums leading-tight">{value}</p>
       </div>
-    </div>
-  );
-}
-
-function RankModeToggle({
-  activeId,
-  onChange,
-}: {
-  activeId: string;
-  onChange: (id: string) => void;
-}) {
-  return (
-    <div
-      className="border-card-border/80 bg-surface/80 inline-flex gap-1 rounded-xl border p-1"
-      role="tablist"
-    >
-      {RANKING_MODES.map((mode) => {
-        const active = activeId === mode.id;
-        const Icon = mode.icon;
-        return (
-          <button
-            key={mode.id}
-            type="button"
-            role="tab"
-            aria-selected={active}
-            aria-label={mode.label}
-            onClick={() => onChange(mode.id)}
-            className={cn(
-              'inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition sm:text-sm',
-              active
-                ? 'bg-accent text-stone-950 shadow-[0_0_20px_rgba(245,158,11,0.25)]'
-                : 'text-muted hover:bg-white/5 hover:text-foreground',
-            )}
-          >
-            <Icon className="h-4 w-4" aria-hidden />
-            <span>{mode.label}</span>
-          </button>
-        );
-      })}
     </div>
   );
 }
@@ -223,6 +186,8 @@ function outcomeMeta(outcome: CompletedDuelSummary['outcome']) {
 }
 
 function ChroniclesPanel({ recentDuels }: { recentDuels: CompletedDuelSummary[] }) {
+  const { activeArenas } = useArenas();
+
   return (
     <Card className={cn('panel-emerald overflow-hidden')}>
       <PanelHeader
@@ -287,7 +252,7 @@ function ChroniclesPanel({ recentDuels }: { recentDuels: CompletedDuelSummary[] 
                   {duel.arena != null && (
                     <span className="text-muted inline-flex items-center gap-1 rounded-md border border-violet-500/20 bg-violet-500/10 px-1.5 py-0.5 text-[10px] text-violet-200">
                       <MapPinIcon className="h-3 w-3" aria-hidden />
-                      {ARENAS[duel.arena]?.name ?? duel.arena}
+                      {getArenaLabel(activeArenas, duel.arena)}
                     </span>
                   )}
                 </div>
@@ -337,21 +302,29 @@ export function PublicDashboard({
         </div>
       </Card>
 
-      <section className="border-card-border/80 bg-surface/70 rounded-2xl border p-4 backdrop-blur-sm sm:p-5">
-        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="text-base font-semibold sm:text-lg">{ARENA_COPY.topRanking}</h2>
-            <p className="text-muted text-xs sm:text-sm">{ARENA_COPY.topRankingHint}</p>
+      <TabPanel
+        className="backdrop-blur-sm"
+        header={
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-base font-semibold sm:text-lg">{ARENA_COPY.topRanking}</h2>
+              <p className="text-muted text-xs sm:text-sm">{ARENA_COPY.topRankingHint}</p>
+            </div>
+            <Tabs
+              tabs={RANKING_TABS}
+              activeId={rankTab}
+              onChange={setRankTab}
+              className="sm:max-w-sm"
+            />
           </div>
-          <RankModeToggle activeId={rankTab} onChange={setRankTab} />
-        </div>
-
+        }
+      >
         {rankTab === 'characters' ? (
           <CharacterRankingBoard ranking={characterRanking} />
         ) : (
           <PlayerRankingBoard ranking={playerRanking} />
         )}
-      </section>
+      </TabPanel>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <ClassDominancePanel classStats={classStats} />

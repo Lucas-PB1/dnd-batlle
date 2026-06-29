@@ -6,6 +6,17 @@ export type DuelStatus = 'open' | 'ready' | 'completed';
 
 export type DuelOutcome = 'player_a' | 'player_b' | 'draw';
 
+export interface Arena {
+  id: string;
+  diceValue: number;
+  name: string;
+  effect: string;
+  description?: string;
+  sortOrder: number;
+  active: boolean;
+  createdAt: string;
+}
+
 export interface User {
   id: string;
   email: string;

@@ -1,4 +1,4 @@
-import type { Character, Duel, User } from '@/domain/entities';
+import type { Arena, Character, Duel, User } from '@/domain/entities';
 
 export interface IUserRepository {
   findAll(): Promise<User[]>;
@@ -25,4 +25,12 @@ export interface IDuelRepository {
   save(duel: Duel): Promise<Duel>;
   update(duel: Duel): Promise<Duel>;
   delete(id: string): Promise<void>;
+}
+
+export interface IArenaRepository {
+  findAll(): Promise<Arena[]>;
+  findById(id: string): Promise<Arena | null>;
+  findByDiceValue(diceValue: number): Promise<Arena | null>;
+  save(arena: Arena): Promise<Arena>;
+  update(arena: Arena): Promise<Arena>;
 }

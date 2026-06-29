@@ -1,4 +1,4 @@
-import { ARENAS, BRACKET_BY_CLASS } from '@/shared/constants/game-rules';
+import { BRACKET_BY_CLASS } from '@/shared/constants/game-rules';
 
 function classesForBracket(bracket: 'A' | 'B' | 'C'): string[] {
   return Object.entries(BRACKET_BY_CLASS)
@@ -73,14 +73,6 @@ export const RULES_SECTIONS = {
       'Amistoso: sem Honrarias',
       'Nova temporada: pontos zeram; Honrarias permanecem',
     ],
-  },
-  arenas: {
-    title: 'Arenas (d6)',
-    rows: Object.entries(ARENAS).map(([roll, arena]) => ({
-      roll: Number(roll),
-      name: arena.name,
-      effect: arena.effect,
-    })),
   },
   judgeChecklist: {
     title: 'Checklist do juiz',

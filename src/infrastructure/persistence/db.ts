@@ -72,6 +72,19 @@ async function ensureSchema(): Promise<void> {
   `;
 
   await sql`
+    CREATE TABLE IF NOT EXISTS arenas (
+      id TEXT PRIMARY KEY,
+      dice_value INTEGER NOT NULL UNIQUE,
+      name TEXT NOT NULL,
+      effect TEXT NOT NULL,
+      description TEXT,
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      active BOOLEAN NOT NULL DEFAULT TRUE,
+      created_at TIMESTAMPTZ NOT NULL
+    )
+  `;
+
+  await sql`
     CREATE TABLE IF NOT EXISTS duels (
       id TEXT PRIMARY KEY,
       token TEXT NOT NULL UNIQUE,

@@ -1,3 +1,5 @@
+import { DEFAULT_ARENAS } from '@/shared/constants/arena-defaults';
+
 export const CHARACTER_CLASSES = [
   'Bárbaro',
   'Bardo',
@@ -38,17 +40,13 @@ export const BRACKET_BY_CLASS: Record<string, 'A' | 'B' | 'C'> = {
   Bruxo: 'C',
 };
 
-export const ARENAS: Record<number, { name: string; effect: string }> = {
-  1: { name: 'Areia', effect: 'Terreno difícil. Disparada → Acrobacia CD 12 ou Caído' },
-  2: { name: 'Pilares', effect: 'Reação: pilar adjacente → +2 CA' },
-  3: {
-    name: 'Gelo',
-    effect: 'Vantagem gerada em corpo a corpo → Acrobacia CD 13 ou Caído',
-  },
-  4: { name: 'Pântano', effect: 'Ataque à distância >3 m → Desvantagem' },
-  5: { name: 'Desníveis', effect: 'Elevado → Vantagem em Força para empurrar/derrubar' },
-  6: { name: 'Vazio', effect: 'Sem modificador ambiental' },
-};
+/** Legado estático — prefira arenas do banco via ArenaService */
+export const ARENAS: Record<number, { name: string; effect: string }> = Object.fromEntries(
+  DEFAULT_ARENAS.map((arena) => [
+    arena.diceValue,
+    { name: arena.name, effect: arena.effect },
+  ]),
+);
 
 export const FAVORED_BRACKET: Record<string, 'A' | 'B' | 'C'> = {
   'A-B': 'B',

@@ -1,3 +1,4 @@
+import { ArenaService } from '@/application/services/arena-service';
 import { AuthService } from '@/application/services/auth-service';
 import { AdminService } from '@/application/services/admin-service';
 import { CharacterService } from '@/application/services/character-service';
@@ -14,6 +15,7 @@ export class ServiceFactory {
   private adminService: AdminService | null = null;
   private characterService: CharacterService | null = null;
   private duelService: DuelService | null = null;
+  private arenaService: ArenaService | null = null;
   private rankingService: RankingService | null = null;
 
   private constructor(private readonly repositoryFactory: RepositoryFactory) {}
@@ -74,6 +76,13 @@ export class ServiceFactory {
       );
     }
     return this.duelService;
+  }
+
+  getArenaService(): ArenaService {
+    if (!this.arenaService) {
+      this.arenaService = new ArenaService(this.repositoryFactory.getArenaRepository());
+    }
+    return this.arenaService;
   }
 
   getRankingService(): RankingService {

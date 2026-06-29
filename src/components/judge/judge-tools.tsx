@@ -3,10 +3,11 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardTitle } from '@/components/ui/card';
-import type { Duel, DuelOutcome } from '@/domain/entities';
+import type { Arena, Duel, DuelOutcome } from '@/domain/entities';
+import { useArenas } from '@/hooks/use-arenas';
 import { calculateDuelPoints } from '@/domain/services/scoring-service';
-import { rollD20, rollD6 } from '@/lib/dice';
-import { ARENAS } from '@/shared/constants/game-rules';
+import { rollD20, rollDie } from '@/lib/dice';
+import { getArenaByDice } from '@/lib/arena-utils';
 import { RULES_SECTIONS } from '@/shared/constants/rules-guide';
 import { ARENA_COPY } from '@/shared/constants/arena-copy';
 
@@ -18,6 +19,7 @@ interface JudgeToolsProps {
 }
 
 export function JudgeTools({ duel, arena, outcome, onArenaChange }: JudgeToolsProps) {
+  const { activeArenas, maxDiceValue } = useArenas();
   const [arenaRoll, setArenaRoll] = useState<number | null>(null);
   const [initiativeA, setInitiativeA] = useState<number | null>(null);
   const [initiativeB, setInitiativeB] = useState<number | null>(null);
@@ -25,7 +27,7 @@ export function JudgeTools({ duel, arena, outcome, onArenaChange }: JudgeToolsPr
     RULES_SECTIONS.judgeChecklist.steps.map(() => false),
   );
 
-  const arenaInfo = ARENAS[Number(arena)];
+  const arenaInfo = getArenaByDice(activeArenas, Number(arena));
   const lastRoll = arenaRoll ?? Number(arena);
 
   const bracketA = duel.playerA?.bracket;
@@ -50,9 +52,10 @@ export function JudgeTools({ duel, arena, outcome, onArenaChange }: JudgeToolsPr
       : null;
 
   function rollArena() {
-    const roll = rollD6();
+    const roll = rollDie(maxDiceValue);
     setArenaRoll(roll);
-    onArenaChange(String(roll));
+    const matched = getArenaByDice(activeArenas, roll);
+    onArenaChange(String(matched?.diceValue ?? roll));
   }
 
   function rollInitiative() {
@@ -75,16 +78,18 @@ export function JudgeTools({ duel, arena, outcome, onArenaChange }: JudgeToolsPr
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium">{ARENA_COPY.rollArena}</p>
-                <p className="text-muted text-xs">{ARENA_COPY.rollArenaHint}</p>
+                <p className="text-muted text-xs">
+                  {ARENA_COPY.rollArenaHint} (d{maxDiceValue})
+                </p>
               </div>
               <Button type="button" variant="secondary" className="w-full sm:w-auto" onClick={rollArena}>
-                🎲 Rolar d6
+                🎲 Rolar d{maxDiceValue}
               </Button>
             </div>
             {lastRoll && arenaInfo && (
               <div className="border-accent/30 bg-accent/10 mt-3 rounded-lg border px-3 py-2">
                 <p className="text-accent text-sm font-semibold">
-                  d6 = {lastRoll} · {arenaInfo.name}
+                  d{maxDiceValue} = {lastRoll} · {arenaInfo.name}
                 </p>
                 <p className="text-muted mt-1 text-xs">{arenaInfo.effect}</p>
               </div>

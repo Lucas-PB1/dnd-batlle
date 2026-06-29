@@ -5,7 +5,7 @@ import { ServiceFactory } from '@/infrastructure/factories/service-factory';
 
 const updateSchema = z.object({
   isClassified: z.boolean().optional(),
-  arena: z.number().int().min(1).max(6).optional(),
+  arena: z.number().int().min(1).max(100).optional(),
   outcome: z.enum(['player_a', 'player_b', 'draw']).optional(),
   rounds: z.number().int().min(1).max(25).optional(),
   notes: z.string().optional(),
@@ -21,6 +21,9 @@ export async function PATCH(
     const session = await requireSession(['admin']);
     const { id } = await context.params;
     const body = updateSchema.parse(await request.json());
+    if (body.arena != null) {
+      await ServiceFactory.create().getArenaService().assertValidDiceValue(body.arena);
+    }
 
     const duel = await ServiceFactory.create().getDuelService().updateDuel({
       duelId: id,

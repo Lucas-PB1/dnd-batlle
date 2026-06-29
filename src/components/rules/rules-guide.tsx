@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, CardDescription, CardTitle } from '@/components/ui/card';
-import { Tabs } from '@/components/ui/tabs';
+import { CardDescription, CardTitle } from '@/components/ui/card';
+import { TabPanel, Tabs } from '@/components/ui/tabs';
+import type { Arena } from '@/domain/entities';
 import { RULES_SECTIONS, RULES_TABS } from '@/shared/constants/rules-guide';
 
 function BulletList({ items }: { items: readonly string[] }) {
@@ -18,7 +19,7 @@ function BulletList({ items }: { items: readonly string[] }) {
   );
 }
 
-function RulesContent({ tabId }: { tabId: string }) {
+function RulesContent({ tabId, arenas }: { tabId: string; arenas: Arena[] }) {
   switch (tabId) {
     case 'formato':
       return (
@@ -116,19 +117,27 @@ function RulesContent({ tabId }: { tabId: string }) {
         </div>
       );
 
-    case 'arenas':
+    case 'arenas': {
+      const maxDice =
+        arenas.length > 0 ? Math.max(...arenas.map((arena) => arena.diceValue)) : 6;
       return (
         <>
+          <p className="text-muted mb-3 text-sm">
+            Sorteio com d{maxDice} — {arenas.length} arena(s) configurada(s).
+          </p>
           <div className="space-y-3 sm:hidden">
-            {RULES_SECTIONS.arenas.rows.map((arena) => (
+            {arenas.map((arena) => (
               <div
-                key={arena.roll}
+                key={arena.id}
                 className="border-card-border/70 rounded-xl border bg-stone-950/30 p-4"
               >
                 <p className="text-accent text-sm font-semibold">
-                  d6 = {arena.roll} · {arena.name}
+                  d{maxDice} = {arena.diceValue} · {arena.name}
                 </p>
                 <p className="text-muted mt-2 text-sm">{arena.effect}</p>
+                {arena.description && (
+                  <p className="text-muted/80 mt-1 text-xs">{arena.description}</p>
+                )}
               </div>
             ))}
           </div>
@@ -136,17 +145,22 @@ function RulesContent({ tabId }: { tabId: string }) {
             <table className="min-w-[32rem] w-full text-sm">
               <thead className="text-muted text-left">
                 <tr>
-                  <th className="pb-2 pr-4">d6</th>
+                  <th className="pb-2 pr-4">Dado</th>
                   <th className="pb-2 pr-4">Arena</th>
-                  <th className="pb-2">Efeito</th>
+                  <th className="pb-2">Mecânica</th>
                 </tr>
               </thead>
               <tbody>
-                {RULES_SECTIONS.arenas.rows.map((arena) => (
-                  <tr key={arena.roll} className="border-card-border/60 border-t">
-                    <td className="text-accent py-3 pr-4 font-semibold">{arena.roll}</td>
+                {arenas.map((arena) => (
+                  <tr key={arena.id} className="border-card-border/60 border-t">
+                    <td className="text-accent py-3 pr-4 font-semibold">{arena.diceValue}</td>
                     <td className="py-3 pr-4 font-medium">{arena.name}</td>
-                    <td className="text-muted py-3">{arena.effect}</td>
+                    <td className="text-muted py-3">
+                      <p>{arena.effect}</p>
+                      {arena.description && (
+                        <p className="mt-1 text-xs opacity-80">{arena.description}</p>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -154,6 +168,7 @@ function RulesContent({ tabId }: { tabId: string }) {
           </div>
         </>
       );
+    }
 
     case 'juiz':
       return (
@@ -174,7 +189,13 @@ function RulesContent({ tabId }: { tabId: string }) {
   }
 }
 
-export function RulesGuide({ compact = false }: { compact?: boolean }) {
+export function RulesGuide({
+  compact = false,
+  arenas = [],
+}: {
+  compact?: boolean;
+  arenas?: Arena[];
+}) {
   const [activeTab, setActiveTab] = useState<string>(RULES_TABS[0].id);
 
   return (
@@ -189,17 +210,23 @@ export function RulesGuide({ compact = false }: { compact?: boolean }) {
         </section>
       )}
 
-      <Card>
-        <CardTitle>Guia completo</CardTitle>
-        <CardDescription>Baseado no regulamento da temporada (PHB 2024)</CardDescription>
-        <Tabs
-          tabs={RULES_TABS}
-          activeId={activeTab}
-          onChange={setActiveTab}
-          className="mt-4"
-        />
-        <div className="mt-4"><RulesContent tabId={activeTab} /></div>
-      </Card>
+      <TabPanel
+        header={
+          <>
+            <CardTitle>Guia completo</CardTitle>
+            <CardDescription>Baseado no regulamento da temporada (PHB 2024)</CardDescription>
+            <Tabs
+              tabs={RULES_TABS}
+              activeId={activeTab}
+              onChange={setActiveTab}
+              fill={false}
+              className="mt-4"
+            />
+          </>
+        }
+      >
+        <RulesContent tabId={activeTab} arenas={arenas} />
+      </TabPanel>
     </div>
   );
 }

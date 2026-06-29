@@ -6,9 +6,9 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardTitle } from '@/components/ui/card';
 import { Badge, Input, Label, Select } from '@/components/ui/form';
-import { Tabs } from '@/components/ui/tabs';
+import { TabPanel, Tabs } from '@/components/ui/tabs';
 import { Modal } from '@/components/ui/modal';
-import type { Character, Duel, UserRole } from '@/domain/entities';
+import type { Arena, Character, Duel, UserRole } from '@/domain/entities';
 import { CHARACTER_CLASSES } from '@/shared/constants/game-rules';
 import {
   ARENA_COPY,
@@ -35,6 +35,7 @@ interface AdminCharacter extends Character {
 const ADMIN_TABS = [
   { id: 'users', label: 'Contas' },
   { id: 'heroes', label: 'Heróis' },
+  { id: 'arenas', label: 'Arenas' },
   { id: 'duels', label: 'Crônicas' },
 ] as const;
 
@@ -84,6 +85,7 @@ export default function AdminPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [characters, setCharacters] = useState<AdminCharacter[]>([]);
   const [duels, setDuels] = useState<Duel[]>([]);
+  const [arenas, setArenas] = useState<Arena[]>([]);
   const [createForm, setCreateForm] = useState({
     email: '',
     password: '',
@@ -99,6 +101,22 @@ export default function AdminPage() {
     password: '',
   });
   const [editingCharacter, setEditingCharacter] = useState<AdminCharacter | null>(null);
+  const [editingArena, setEditingArena] = useState<Arena | null>(null);
+  const [arenaDraft, setArenaDraft] = useState({
+    diceValue: 1,
+    name: '',
+    effect: '',
+    description: '',
+    sortOrder: 1,
+    active: true,
+  });
+  const [createArenaForm, setCreateArenaForm] = useState({
+    diceValue: 7,
+    name: '',
+    effect: '',
+    description: '',
+    sortOrder: 7,
+  });
   const [characterDraft, setCharacterDraft] = useState({
     name: '',
     characterClass: CHARACTER_CLASSES[0] as string,
@@ -113,19 +131,22 @@ export default function AdminPage() {
   const [showRemovedUsers, setShowRemovedUsers] = useState(false);
 
   async function loadAll(includeRemoved = showRemovedUsers) {
-    const [usersRes, charactersRes, duelsRes] = await Promise.all([
+    const [usersRes, charactersRes, duelsRes, arenasRes] = await Promise.all([
       fetch(`/api/admin/users${includeRemoved ? '?all=1' : ''}`),
       fetch('/api/admin/characters?all=1'),
       fetch('/api/admin/duels'),
+      fetch('/api/admin/arenas'),
     ]);
 
     const usersData = await usersRes.json();
     const charactersData = await charactersRes.json();
     const duelsData = await duelsRes.json();
+    const arenasData = await arenasRes.json();
 
     setUsers((usersData.users ?? []) as AdminUser[]);
     setCharacters((charactersData.characters ?? []) as AdminCharacter[]);
     setDuels((duelsData.duels ?? []) as Duel[]);
+    setArenas((arenasData.arenas ?? []) as Arena[]);
   }
 
   useEffect(() => {
@@ -283,6 +304,20 @@ export default function AdminPage() {
     await loadAll();
   }
 
+  async function removeCharacter(id: string) {
+    if (!window.confirm(ARENA_COPY.confirmDeleteHero)) return;
+
+    const response = await fetch(`/api/admin/characters/${id}`, { method: 'DELETE' });
+    if (!response.ok) {
+      const data = await response.json();
+      window.alert(data.error ?? 'Erro ao excluir');
+      return;
+    }
+
+    setMessage(ARENA_COPY.heroRemoved);
+    await loadAll();
+  }
+
   function startEditCharacter(character: AdminCharacter) {
     setEditingCharacter(character);
     setCharacterDraft({
@@ -316,17 +351,82 @@ export default function AdminPage() {
     await loadAll();
   }
 
-  async function removeCharacter(id: string) {
-    if (!window.confirm(ARENA_COPY.confirmDeleteHero)) return;
+  async function createArena(event: React.FormEvent) {
+    event.preventDefault();
+    setError('');
+    setMessage('');
 
-    const response = await fetch(`/api/admin/characters/${id}`, { method: 'DELETE' });
+    const response = await fetch('/api/admin/arenas', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(createArenaForm),
+    });
+
+    const data = await response.json();
     if (!response.ok) {
-      const data = await response.json();
-      window.alert(data.error ?? 'Erro ao excluir');
+      setError(data.error ?? 'Erro ao criar arena');
       return;
     }
 
-    setMessage(ARENA_COPY.heroRemoved);
+    setCreateArenaForm({
+      diceValue: arenas.length + 1,
+      name: '',
+      effect: '',
+      description: '',
+      sortOrder: arenas.length + 1,
+    });
+    setMessage(ARENA_COPY.arenaCreated);
+    await loadAll();
+  }
+
+  function startEditArena(arena: Arena) {
+    setEditingArena(arena);
+    setArenaDraft({
+      diceValue: arena.diceValue,
+      name: arena.name,
+      effect: arena.effect,
+      description: arena.description ?? '',
+      sortOrder: arena.sortOrder,
+      active: arena.active,
+    });
+    setError('');
+    setMessage('');
+  }
+
+  async function saveArena() {
+    if (!editingArena) return;
+
+    const response = await fetch(`/api/admin/arenas/${editingArena.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...arenaDraft,
+        description: arenaDraft.description || null,
+      }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      setError(data.error ?? 'Erro ao salvar arena');
+      return;
+    }
+
+    setEditingArena(null);
+    setMessage(ARENA_COPY.arenaUpdated);
+    await loadAll();
+  }
+
+  async function removeArena(id: string) {
+    if (!window.confirm(ARENA_COPY.confirmDeleteArena)) return;
+
+    const response = await fetch(`/api/admin/arenas/${id}`, { method: 'DELETE' });
+    if (!response.ok) {
+      const data = await response.json();
+      window.alert(data.error ?? 'Erro ao desativar arena');
+      return;
+    }
+
+    setMessage(ARENA_COPY.arenaRemoved);
     await loadAll();
   }
 
@@ -360,8 +460,15 @@ export default function AdminPage() {
         <p className={error ? 'text-danger text-sm' : 'text-emerald text-sm'}>{error || message}</p>
       )}
 
-      <Tabs tabs={ADMIN_TABS} activeId={tab} onChange={(id) => setTab(id as AdminTabId)} />
-
+      <TabPanel
+        header={
+          <Tabs
+            tabs={ADMIN_TABS}
+            activeId={tab}
+            onChange={(id) => setTab(id as AdminTabId)}
+          />
+        }
+      >
       {tab === 'users' && (
         <div className="grid gap-6 lg:grid-cols-2">
           <Card>
@@ -670,6 +777,188 @@ export default function AdminPage() {
         </div>
       )}
 
+      {tab === 'arenas' && (
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Card>
+            <CardTitle>{ARENA_COPY.newArena}</CardTitle>
+            <CardDescription>{ARENA_COPY.newArenaHint}</CardDescription>
+            <form onSubmit={createArena} className="mt-4 space-y-3">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <Label>{ARENA_COPY.arenaDice}</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={createArenaForm.diceValue}
+                    onChange={(e) =>
+                      setCreateArenaForm({
+                        ...createArenaForm,
+                        diceValue: Number(e.target.value),
+                      })
+                    }
+                  />
+                </div>
+                <div>
+                  <Label>{ARENA_COPY.arenaOrder}</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={createArenaForm.sortOrder}
+                    onChange={(e) =>
+                      setCreateArenaForm({
+                        ...createArenaForm,
+                        sortOrder: Number(e.target.value),
+                      })
+                    }
+                  />
+                </div>
+              </div>
+              <div>
+                <Label>{ARENA_COPY.arenaName}</Label>
+                <Input
+                  value={createArenaForm.name}
+                  onChange={(e) => setCreateArenaForm({ ...createArenaForm, name: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>{ARENA_COPY.arenaEffect}</Label>
+                <Input
+                  value={createArenaForm.effect}
+                  onChange={(e) =>
+                    setCreateArenaForm({ ...createArenaForm, effect: e.target.value })
+                  }
+                />
+              </div>
+              <div>
+                <Label>{ARENA_COPY.arenaDescription}</Label>
+                <Input
+                  value={createArenaForm.description}
+                  onChange={(e) =>
+                    setCreateArenaForm({ ...createArenaForm, description: e.target.value })
+                  }
+                />
+              </div>
+              <Button type="submit" className="w-full sm:w-auto">
+                {ARENA_COPY.createArena}
+              </Button>
+            </form>
+          </Card>
+
+          <Card>
+            <CardTitle>{ARENA_COPY.arenaRoster}</CardTitle>
+            <CardDescription>{ARENA_COPY.arenaRosterHint}</CardDescription>
+            <div className="mt-4 max-h-[32rem] space-y-3 overflow-y-auto">
+              {arenas.map((arena) => (
+                <div
+                  key={arena.id}
+                  className="border-card-border/70 rounded-xl border bg-stone-950/30 p-4"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-medium">
+                        {arena.diceValue}. {arena.name}
+                      </p>
+                      <p className="text-muted mt-1 text-sm">{arena.effect}</p>
+                      {arena.description && (
+                        <p className="text-muted/80 mt-1 text-xs">{arena.description}</p>
+                      )}
+                      <div className="mt-2">
+                        <Badge tone={arena.active ? 'success' : 'warning'}>
+                          {arena.active ? ARENA_COPY.statusActive : ARENA_COPY.statusInactive}
+                        </Badge>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="secondary" onClick={() => startEditArena(arena)}>
+                        {ARENA_COPY.edit}
+                      </Button>
+                      {arena.active && (
+                        <Button variant="ghost" onClick={() => void removeArena(arena.id)}>
+                          {ARENA_COPY.delete}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          <Modal
+            open={Boolean(editingArena)}
+            onClose={() => setEditingArena(null)}
+            title={editingArena ? `${ARENA_COPY.editArena}: ${editingArena.name}` : ''}
+          >
+            {editingArena && (
+              <>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <Label>{ARENA_COPY.arenaDice}</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={arenaDraft.diceValue}
+                      onChange={(e) =>
+                        setArenaDraft({ ...arenaDraft, diceValue: Number(e.target.value) })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <Label>{ARENA_COPY.arenaOrder}</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={arenaDraft.sortOrder}
+                      onChange={(e) =>
+                        setArenaDraft({ ...arenaDraft, sortOrder: Number(e.target.value) })
+                      }
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Label>{ARENA_COPY.arenaName}</Label>
+                    <Input
+                      value={arenaDraft.name}
+                      onChange={(e) => setArenaDraft({ ...arenaDraft, name: e.target.value })}
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Label>{ARENA_COPY.arenaEffect}</Label>
+                    <Input
+                      value={arenaDraft.effect}
+                      onChange={(e) => setArenaDraft({ ...arenaDraft, effect: e.target.value })}
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Label>{ARENA_COPY.arenaDescription}</Label>
+                    <Input
+                      value={arenaDraft.description}
+                      onChange={(e) =>
+                        setArenaDraft({ ...arenaDraft, description: e.target.value })
+                      }
+                    />
+                  </div>
+                  <label className="inline-flex items-center gap-2 text-sm sm:col-span-2">
+                    <input
+                      type="checkbox"
+                      checked={arenaDraft.active}
+                      onChange={(e) => setArenaDraft({ ...arenaDraft, active: e.target.checked })}
+                      className="accent-accent"
+                    />
+                    Arena ativa no sorteio
+                  </label>
+                </div>
+                <div className="mt-6 flex flex-wrap gap-2 border-t border-white/[0.06] pt-4">
+                  <Button onClick={() => void saveArena()}>{ARENA_COPY.save}</Button>
+                  <Button variant="ghost" onClick={() => setEditingArena(null)}>
+                    {ARENA_COPY.cancel}
+                  </Button>
+                </div>
+              </>
+            )}
+          </Modal>
+        </div>
+      )}
+
       {tab === 'duels' && (
         <Card>
           <CardTitle>{ARENA_COPY.adminChronicles}</CardTitle>
@@ -721,6 +1010,7 @@ export default function AdminPage() {
           </div>
         </Card>
       )}
+      </TabPanel>
     </div>
   );
 }

@@ -6,7 +6,7 @@ import { canCompleteDuel, canViewDuel } from '@/shared/utils/duel-permissions';
 import { hasAnyRole } from '@/shared/utils/roles';
 
 const completeSchema = z.object({
-  arena: z.number().int().min(1).max(6),
+  arena: z.number().int().min(1).max(100),
   outcome: z.enum(['player_a', 'player_b', 'draw']),
   rounds: z.number().int().min(1).max(25),
   notes: z.string().optional(),
@@ -15,7 +15,7 @@ const completeSchema = z.object({
 
 const updateSchema = z.object({
   isClassified: z.boolean().optional(),
-  arena: z.number().int().min(1).max(6).optional(),
+  arena: z.number().int().min(1).max(100).optional(),
   outcome: z.enum(['player_a', 'player_b', 'draw']).optional(),
   rounds: z.number().int().min(1).max(25).optional(),
   notes: z.string().optional(),
@@ -69,6 +69,9 @@ export async function PATCH(
 
     if (duel.status === 'completed') {
       const body = updateSchema.parse(payload);
+      if (body.arena != null) {
+        await ServiceFactory.create().getArenaService().assertValidDiceValue(body.arena);
+      }
       const updated = await duelService.updateDuel({
         duelId: id,
         actorId: session.userId,
@@ -87,6 +90,7 @@ export async function PATCH(
     }
 
     const body = completeSchema.parse(payload);
+    await ServiceFactory.create().getArenaService().assertValidDiceValue(body.arena);
     const completed = await duelService.completeDuel({
       duelId: id,
       actorId: session.userId,
