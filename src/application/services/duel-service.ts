@@ -161,6 +161,18 @@ export class DuelService {
     const duel = await this.duelRepository.findByToken(input.token);
     if (!duel) throw new Error('Duelo não encontrado');
     if (duel.status === 'completed') throw new Error('Duelo já finalizado');
+    if (duel.status === 'ready' || (duel.playerA && duel.playerB)) {
+      throw new Error('Arena lotada — as duas vagas já foram preenchidas');
+    }
+
+    const slotTaken = input.slot === 'A' ? duel.playerA : duel.playerB;
+    if (slotTaken) {
+      throw new Error(
+        input.slot === 'A'
+          ? 'A vaga do Desafiante A já está ocupada'
+          : 'A vaga do Desafiante B já está ocupada',
+      );
+    }
 
     const player = await this.buildPlayerEntry(input);
 

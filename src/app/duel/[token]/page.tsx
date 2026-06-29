@@ -1,12 +1,18 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
+import {
+  CheckCircleIcon,
+  LockClosedIcon,
+  UserIcon,
+} from '@heroicons/react/24/outline';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardTitle } from '@/components/ui/card';
 import { Badge, Input, Label, Select } from '@/components/ui/form';
 import type { Character } from '@/domain/entities';
+import { cn } from '@/lib/cn';
 import { BRACKET_BY_CLASS } from '@/shared/constants/game-rules';
 import {
   ARENA_COPY,
@@ -35,6 +41,77 @@ interface DuelPublic {
   };
 }
 
+function DuelSlotCard({
+  corner,
+  player,
+  slotKey,
+  selected,
+  selectable,
+  onSelect,
+}: {
+  corner: string;
+  player?: DuelPublic['playerA'];
+  slotKey: 'A' | 'B';
+  selected: boolean;
+  selectable: boolean;
+  onSelect: (slot: 'A' | 'B') => void;
+}) {
+  const occupied = Boolean(player);
+
+  return (
+    <button
+      type="button"
+      disabled={!selectable}
+      onClick={() => selectable && onSelect(slotKey)}
+      className={cn(
+        'relative flex min-h-[9.5rem] w-full flex-col rounded-xl border p-4 text-left transition',
+        occupied
+          ? 'border-emerald-500/35 bg-emerald-950/20'
+          : selectable
+            ? selected
+              ? 'border-accent bg-accent/10 ring-1 ring-accent/40'
+              : 'border-card-border/70 bg-stone-950/30 hover:border-accent/40 hover:bg-stone-950/50'
+            : 'border-card-border/50 bg-stone-950/20 opacity-80',
+        selectable && 'cursor-pointer',
+        !selectable && 'cursor-default',
+      )}
+    >
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <p className="text-muted text-[10px] font-semibold tracking-[0.18em] uppercase">
+          {corner}
+        </p>
+        <Badge tone={occupied ? 'success' : selectable ? 'warning' : 'default'}>
+          {occupied ? ARENA_COPY.slotOccupied : ARENA_COPY.slotAvailable}
+        </Badge>
+      </div>
+
+      {occupied && player ? (
+        <>
+          <p className="text-base font-semibold leading-tight">{player.name}</p>
+          {player.playerDisplayName && (
+            <p className="text-accent mt-1 text-xs">{player.playerDisplayName}</p>
+          )}
+          <p className="text-muted mt-2 text-sm">
+            {player.characterClass} · {ARENA_COPY.bracket} {player.bracket}
+          </p>
+        </>
+      ) : (
+        <>
+          <div className="border-card-border/60 text-muted mb-2 flex h-10 w-10 items-center justify-center rounded-full border border-dashed">
+            <UserIcon className="h-5 w-5" aria-hidden />
+          </div>
+          <p className="font-medium">{ARENA_COPY.challengerVacant}</p>
+          {selectable && (
+            <p className="text-muted mt-2 text-xs">
+              {selected ? 'Vaga selecionada' : 'Toque para escolher'}
+            </p>
+          )}
+        </>
+      )}
+    </button>
+  );
+}
+
 export default function DuelRegistrationPage() {
   const params = useParams<{ token: string }>();
   const [duel, setDuel] = useState<DuelPublic | null>(null);
@@ -51,6 +128,7 @@ export default function DuelRegistrationPage() {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -84,16 +162,39 @@ export default function DuelRegistrationPage() {
     };
   }, [params.token]);
 
+  const slotAOpen = !duel?.playerA;
+  const slotBOpen = !duel?.playerB;
+  const filledCount = (duel?.playerA ? 1 : 0) + (duel?.playerB ? 1 : 0);
+  const arenaFull =
+    duel?.status === 'ready' ||
+    duel?.status === 'completed' ||
+    (!slotAOpen && !slotBOpen);
+  const canEnroll = duel != null && duel.status !== 'completed' && !arenaFull;
+
+  const availableSlots = useMemo(() => {
+    const slots: ('A' | 'B')[] = [];
+    if (slotAOpen) slots.push('A');
+    if (slotBOpen) slots.push('B');
+    return slots;
+  }, [slotAOpen, slotBOpen]);
+
+  const activeSlot = availableSlots.includes(slot)
+    ? slot
+    : (availableSlots[0] ?? slot);
+
   async function submit(event: React.FormEvent) {
     event.preventDefault();
+    if (!canEnroll) return;
+
     setError('');
     setMessage('');
+    setSubmitting(true);
 
     const body =
       mode === 'character' && characterId
-        ? { slot, characterId, seasonPointsBefore: Number(seasonPointsBefore) }
+        ? { slot: activeSlot, characterId, seasonPointsBefore: Number(seasonPointsBefore) }
         : {
-            slot,
+            slot: activeSlot,
             name,
             characterClass,
             subclass: subclass || undefined,
@@ -107,6 +208,8 @@ export default function DuelRegistrationPage() {
     });
 
     const data = await response.json();
+    setSubmitting(false);
+
     if (!response.ok) {
       setError(data.error ?? 'Erro ao registrar');
       return;
@@ -125,7 +228,7 @@ export default function DuelRegistrationPage() {
   const selectedCharacter = characters.find((item) => item.id === characterId);
 
   return (
-    <div className="mx-auto max-w-xl space-y-6">
+    <div className="mx-auto max-w-2xl space-y-6">
       <section className="space-y-2 text-center">
         <p className="text-accent text-sm tracking-[0.2em] uppercase">
           {ARENA_COPY.duelRegistration}
@@ -136,48 +239,74 @@ export default function DuelRegistrationPage() {
         </p>
       </section>
 
-      <Card>
-        <div className="flex flex-wrap gap-2">
-          <Badge tone={duel.isClassified ? 'warning' : 'default'}>
-            {duelTypeLabel(duel.isClassified)}
-          </Badge>
-          <Badge>{duelStatusLabel(duel.status)}</Badge>
+      <Card className="panel-amber overflow-hidden">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap gap-2">
+            <Badge tone={duel.isClassified ? 'warning' : 'default'}>
+              {duelTypeLabel(duel.isClassified)}
+            </Badge>
+            <Badge tone={duel.status === 'completed' ? 'success' : arenaFull ? 'success' : 'warning'}>
+              {duelStatusLabel(duel.status)}
+            </Badge>
+          </div>
+          <p className="text-muted text-xs tabular-nums sm:text-sm">
+            {filledCount}/2 desafiantes
+          </p>
         </div>
 
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          {(['A', 'B'] as const).map((slotKey) => {
-            const player = slotKey === 'A' ? duel.playerA : duel.playerB;
-            const corner = slotKey === 'A' ? ARENA_COPY.cornerA : ARENA_COPY.cornerB;
-            return (
-              <div
-                key={slotKey}
-                className="border-card-border/70 rounded-xl border bg-stone-950/30 p-4"
-              >
-                <p className="text-muted text-xs uppercase">{corner}</p>
-                <p className="font-medium">{player?.name ?? ARENA_COPY.challengerVacant}</p>
-                {player && (
-                  <>
-                    {player.playerDisplayName && (
-                      <p className="text-accent text-xs">{player.playerDisplayName}</p>
-                    )}
-                    <p className="text-muted text-sm">
-                      {player.characterClass} · {ARENA_COPY.bracket} {player.bracket}
-                    </p>
-                  </>
-                )}
-              </div>
-            );
-          })}
+        <div className="mt-5 grid items-stretch gap-3 sm:grid-cols-[1fr_auto_1fr]">
+          <DuelSlotCard
+            corner={ARENA_COPY.cornerA}
+            player={duel.playerA}
+            slotKey="A"
+            selected={activeSlot === 'A'}
+            selectable={canEnroll && slotAOpen}
+            onSelect={setSlot}
+          />
+          <div className="text-muted flex items-center justify-center text-sm font-bold tracking-widest sm:flex-col">
+            VS
+          </div>
+          <DuelSlotCard
+            corner={ARENA_COPY.cornerB}
+            player={duel.playerB}
+            slotKey="B"
+            selected={activeSlot === 'B'}
+            selectable={canEnroll && slotBOpen}
+            onSelect={setSlot}
+          />
         </div>
 
-        {duel.status === 'completed' ? (
-          <p className="text-muted mt-4 text-sm">{ARENA_COPY.duelAlreadySealed}</p>
-        ) : (
+        {duel.status === 'completed' && (
+          <div className="border-card-border/70 mt-6 flex items-start gap-3 rounded-xl border bg-stone-950/30 p-4">
+            <LockClosedIcon className="text-muted mt-0.5 h-5 w-5 shrink-0" aria-hidden />
+            <p className="text-muted text-sm">{ARENA_COPY.duelAlreadySealed}</p>
+          </div>
+        )}
+
+        {arenaFull && duel.status !== 'completed' && (
+          <div className="border-emerald-500/30 mt-6 flex items-start gap-3 rounded-xl border bg-emerald-950/20 p-4">
+            <CheckCircleIcon className="text-emerald mt-0.5 h-5 w-5 shrink-0" aria-hidden />
+            <div>
+              <p className="font-medium text-emerald-200">{ARENA_COPY.arenaFullTitle}</p>
+              <p className="text-muted mt-1 text-sm">{ARENA_COPY.arenaFullHint}</p>
+            </div>
+          </div>
+        )}
+
+        {canEnroll && (
           <>
             <CardTitle className="mt-6">{ARENA_COPY.yourEnrollment}</CardTitle>
             <CardDescription>
-              {isPlayer ? ARENA_COPY.enrollmentHintPlayer : ARENA_COPY.enrollmentHintGuest}
+              {availableSlots.length === 1
+                ? `Inscrição aberta apenas no ${activeSlot === 'A' ? ARENA_COPY.cornerA : ARENA_COPY.cornerB}.`
+                : isPlayer
+                  ? ARENA_COPY.enrollmentHintPlayer
+                  : ARENA_COPY.enrollmentHintGuest}
             </CardDescription>
+
+            {availableSlots.length > 1 && (
+              <p className="text-muted mt-2 text-xs">{ARENA_COPY.slotPickHint}</p>
+            )}
 
             {!isPlayer && (
               <p className="text-muted mt-3 text-sm">
@@ -192,20 +321,9 @@ export default function DuelRegistrationPage() {
             )}
 
             <form onSubmit={submit} className="mt-4 space-y-4">
-              <div>
-                <Label>{ARENA_COPY.arenaSide}</Label>
-                <Select
-                  value={slot}
-                  onChange={(e) => setSlot(e.target.value as 'A' | 'B')}
-                >
-                  <option value="A">{ARENA_COPY.cornerA}</option>
-                  <option value="B">{ARENA_COPY.cornerB}</option>
-                </Select>
-              </div>
-
               {isPlayer && characters.length > 0 && (
                 <>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     <Button
                       type="button"
                       variant={mode === 'character' ? 'primary' : 'secondary'}
@@ -247,7 +365,8 @@ export default function DuelRegistrationPage() {
                             </p>
                           )}
                           <p className="text-muted mt-1 text-xs">
-                            {ARENA_COPY.bracket} {BRACKET_BY_CLASS[selectedCharacter.characterClass]}
+                            {ARENA_COPY.bracket}{' '}
+                            {BRACKET_BY_CLASS[selectedCharacter.characterClass]}
                           </p>
                         </div>
                       )}
@@ -301,8 +420,8 @@ export default function DuelRegistrationPage() {
               {error && <p className="text-danger text-sm">{error}</p>}
               {message && <p className="text-success text-sm">{message}</p>}
 
-              <Button type="submit" className="w-full">
-                {ARENA_COPY.confirmEnrollment}
+              <Button type="submit" className="w-full" disabled={submitting}>
+                {submitting ? ARENA_COPY.enrollmentSubmitting : ARENA_COPY.confirmEnrollment}
               </Button>
             </form>
           </>

@@ -237,6 +237,83 @@ describe('DuelService integration', () => {
     ).rejects.toThrow('Este herói já está inscrito no outro lado da arena');
   });
 
+  it('blocks registering in an occupied slot', async () => {
+    const factory = ServiceFactory.create(dataDir);
+    const adminService = factory.getAdminService();
+    const authService = factory.getAuthService();
+    const duelService = factory.getDuelService();
+
+    await authService.ensureDefaultAdmin();
+    const judge = await adminService.createJudge({
+      email: 'juiz-slot@test.local',
+      password: '1234',
+      displayName: 'Juiz Slot',
+    });
+
+    const duel = await duelService.createDuel({
+      judgeId: judge.id,
+      isClassified: true,
+    });
+
+    await duelService.registerPlayer({
+      token: duel.token,
+      slot: 'A',
+      name: 'Herói A',
+      characterClass: 'Lutador',
+    });
+
+    await expect(
+      duelService.registerPlayer({
+        token: duel.token,
+        slot: 'A',
+        name: 'Intruso',
+        characterClass: 'Mago',
+      }),
+    ).rejects.toThrow('A vaga do Desafiante A já está ocupada');
+  });
+
+  it('blocks registering when both slots are filled', async () => {
+    const factory = ServiceFactory.create(dataDir);
+    const adminService = factory.getAdminService();
+    const authService = factory.getAuthService();
+    const duelService = factory.getDuelService();
+
+    await authService.ensureDefaultAdmin();
+    const judge = await adminService.createJudge({
+      email: 'juiz-full@test.local',
+      password: '1234',
+      displayName: 'Juiz Full',
+    });
+
+    const duel = await duelService.createDuel({
+      judgeId: judge.id,
+      isClassified: true,
+    });
+
+    await duelService.registerPlayer({
+      token: duel.token,
+      slot: 'A',
+      name: 'Herói A',
+      characterClass: 'Lutador',
+    });
+
+    await duelService.registerPlayer({
+      token: duel.token,
+      slot: 'B',
+      name: 'Herói B',
+      characterClass: 'Mago',
+    });
+
+    await expect(
+      duelService.registerPlayer({
+        token: duel.token,
+        slot: 'A',
+        name: 'Terceiro',
+        characterClass: 'Ladino',
+      }),
+    ).rejects.toThrow('Arena lotada — as duas vagas já foram preenchidas');
+  });
+
   it('allows another judge to edit a completed duel', async () => {
     const factory = ServiceFactory.create(dataDir);
     const adminService = factory.getAdminService();
