@@ -14,6 +14,7 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "@heroicons/react": "^2.2.0",
     "@neondatabase/serverless": "^1.1.0",
     "bcryptjs": "^3.0.3",
     "jose": "^6.2.3",

@@ -1,5 +1,6 @@
 'use client';
 
+import { TrophyIcon } from '@heroicons/react/24/outline';
 import { cn } from '@/lib/cn';
 import {
   getRankColors,
@@ -89,7 +90,7 @@ function ChampionCard({ entry, maxPoints }: { entry: HallEntry; maxPoints: numbe
     <article
       className={cn(
         'relative overflow-hidden rounded-2xl border px-4 py-4 sm:px-5 sm:py-5',
-        'border-amber-500/25 bg-gradient-to-br from-amber-500/[0.08] via-stone-950/40 to-stone-950/60',
+        'border-amber-500/30 bg-gradient-to-br from-amber-500/[0.12] via-violet-500/[0.04] to-surface/80',
         colors?.glow,
       )}
     >
@@ -137,7 +138,7 @@ function RankingRow({ entry, maxPoints }: { entry: HallEntry; maxPoints: number 
   return (
     <li
       className={cn(
-        'flex items-center gap-3 rounded-xl border border-white/[0.06] bg-stone-950/30 px-3 py-3 transition-colors hover:border-white/10 hover:bg-stone-950/50 sm:px-4',
+        'flex items-center gap-3 rounded-xl border border-card-border/60 bg-surface/70 px-3 py-3 transition-colors hover:border-violet-500/20 hover:bg-surface-elevated/50 sm:px-4',
         entry.rank === 2 && 'border-l-2 border-l-stone-300/40',
         entry.rank === 3 && 'border-l-2 border-l-orange-700/50',
       )}
@@ -187,10 +188,8 @@ export function RankingHall({
       {champions.length > 0 && (
         <section className="space-y-3">
           <div className="flex items-center gap-2 px-1">
-            <span className="text-amber-400/90" aria-hidden>
-              ♛
-            </span>
-            <p className="text-muted text-[11px] tracking-[0.15em] uppercase">
+            <TrophyIcon className="text-amber-400 h-4 w-4" aria-hidden />
+            <p className="text-accent-secondary text-[11px] tracking-[0.15em] uppercase">
               {ARENA_COPY.champion}
             </p>
           </div>

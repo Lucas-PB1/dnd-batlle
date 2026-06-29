@@ -1,15 +1,23 @@
 @import 'tailwindcss';
 
 :root {
-  --background: #0c0a09;
-  --foreground: #fafaf9;
-  --card: #1c1917;
-  --card-border: #292524;
-  --muted: #a8a29e;
-  --accent: #d97706;
-  --accent-soft: #92400e;
-  --success: #16a34a;
-  --danger: #dc2626;
+  --background: #14121a;
+  --foreground: #f4f2f7;
+  --card: #1f1c28;
+  --card-border: #3d3550;
+  --muted: #a8a3b8;
+  --accent: #f59e0b;
+  --accent-secondary: #a78bfa;
+  --accent-soft: #78350f;
+  --surface: #221f2e;
+  --surface-elevated: #2d2940;
+  --violet: #8b5cf6;
+  --sky: #38bdf8;
+  --emerald: #34d399;
+  --rose: #fb7185;
+  --amber-glow: #fbbf24;
+  --success: #22c55e;
+  --danger: #ef4444;
 }
 
 @theme inline {
@@ -19,7 +27,15 @@
   --color-card-border: var(--card-border);
   --color-muted: var(--muted);
   --color-accent: var(--accent);
+  --color-accent-secondary: var(--accent-secondary);
   --color-accent-soft: var(--accent-soft);
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-violet: var(--violet);
+  --color-sky: var(--sky);
+  --color-emerald: var(--emerald);
+  --color-rose: var(--rose);
+  --color-amber-glow: var(--amber-glow);
   --color-success: var(--success);
   --color-danger: var(--danger);
   --font-sans: var(--font-geist-sans);
@@ -28,7 +44,9 @@
 
 body {
   background:
-    radial-gradient(ellipse at top, rgba(217, 119, 6, 0.08), transparent 50%),
+    radial-gradient(ellipse 90% 55% at 50% -15%, rgba(245, 158, 11, 0.14), transparent 55%),
+    radial-gradient(ellipse 55% 45% at 100% 90%, rgba(139, 92, 246, 0.1), transparent 50%),
+    radial-gradient(ellipse 45% 35% at 0% 75%, rgba(52, 211, 153, 0.07), transparent 45%),
     var(--background);
   color: var(--foreground);
   min-height: 100vh;
@@ -42,11 +60,26 @@ body {
 }
 
 ::selection {
-  background: rgba(217, 119, 6, 0.35);
+  background: rgba(167, 139, 250, 0.35);
+}
+
+.panel-violet {
+  background: linear-gradient(145deg, rgba(139, 92, 246, 0.1), rgba(31, 28, 40, 0.9));
+  border-color: rgba(139, 92, 246, 0.22);
+}
+
+.panel-emerald {
+  background: linear-gradient(145deg, rgba(52, 211, 153, 0.08), rgba(31, 28, 40, 0.9));
+  border-color: rgba(52, 211, 153, 0.2);
+}
+
+.panel-amber {
+  background: linear-gradient(145deg, rgba(245, 158, 11, 0.1), rgba(31, 28, 40, 0.92));
+  border-color: rgba(245, 158, 11, 0.2);
 }
 
 .ranking-hero {
   background:
-    linear-gradient(135deg, rgba(28, 25, 23, 0.95), rgba(12, 10, 9, 0.98)),
-    radial-gradient(circle at top, rgba(217, 119, 6, 0.08), transparent 55%);
+    linear-gradient(135deg, rgba(45, 41, 64, 0.95), rgba(20, 18, 26, 0.98)),
+    radial-gradient(circle at top, rgba(245, 158, 11, 0.1), transparent 55%);
 }

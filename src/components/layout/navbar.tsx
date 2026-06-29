@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { ShieldCheckIcon } from '@heroicons/react/24/outline';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/cn';
 import { ARENA_COPY } from '@/shared/constants/arena-copy';
@@ -105,11 +106,11 @@ export function Navbar() {
   const allLinks = [...publicLinks, ...roleLinks];
 
   return (
-    <header className="border-card-border/80 bg-background/80 sticky top-0 z-50 border-b backdrop-blur-md">
+    <header className="border-card-border/80 bg-background/85 sticky top-0 z-50 border-b backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-3 py-2 sm:px-4">
         <Link href="/" className="group flex min-w-0 shrink items-center gap-2 sm:gap-3">
           <span className="bg-accent/15 text-accent ring-accent/30 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1">
-            ⚔
+            <ShieldCheckIcon className="h-5 w-5" aria-hidden />
           </span>
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold tracking-wide">{ARENA_COPY.siteName}</p>
