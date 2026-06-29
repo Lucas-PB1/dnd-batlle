@@ -58,7 +58,7 @@ Referência rápida para duelos classificados. PHB 2024 · nível 7 · monoclass
 
 | Faixa                     | Classes                                      |
 | ------------------------- | -------------------------------------------- |
-| **A — Martiais**          | Bárbaro, Ladino, Lutador, Monge, Patrulheiro |
+| **A — Martiais**          | Bárbaro, Ladino, Lutador, Monge, Patrulheiro, Pugilista, Irlliger, Gunslinger, Caçador de Monstros |
 | **B — Meio-conjuradores** | Paladino, Clérigo, Druida, Bardo, Artífice   |
 | **C — Conjuradores**      | Mago, Feiticeiro, Bruxo                      |
 

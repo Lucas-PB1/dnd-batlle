@@ -80,6 +80,7 @@ export class ServiceFactory {
       this.rankingService = new RankingService(
         this.repositoryFactory.getDuelRepository(),
         this.repositoryFactory.getUserRepository(),
+        this.repositoryFactory.getCharacterRepository(),
       );
     }
     return this.rankingService;

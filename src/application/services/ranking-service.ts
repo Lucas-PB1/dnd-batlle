@@ -1,56 +1,77 @@
-import type { IDuelRepository, IUserRepository } from '@/domain/repositories';
+import type { ICharacterRepository, IDuelRepository, IUserRepository } from '@/domain/repositories';
 import type { ClassStats, Duel, DuelOutcome, PlayerStats, PublicStats } from '@/domain/entities';
 import { aggregateRankings } from '@/domain/services/ranking-aggregator';
+import {
+  buildPlayerRankingsFromCharacters,
+  mergeCharacterRankings,
+} from '@/domain/services/ranking-builder';
+import { hasRole } from '@/shared/utils/roles';
 
 export class RankingService {
   constructor(
     private readonly duelRepository: IDuelRepository,
     private readonly userRepository: IUserRepository,
+    private readonly characterRepository: ICharacterRepository,
   ) {}
 
   async getPublicStats(): Promise<PublicStats> {
+    const stats = await this.buildFullRankings();
     const duels = await this.duelRepository.findAll();
-    const { characterRanking, playerRanking, recentDuels } = aggregateRankings(duels);
-
-    const playerRankingWithNames = await this.enrichPlayerNames(playerRanking);
 
     return {
-      characterRanking,
-      playerRanking: playerRankingWithNames,
+      ...stats,
       classStats: this.buildClassStats(duels),
       totalDuels: duels.filter((duel) => duel.status === 'completed' && duel.isClassified).length,
-      recentDuels,
     };
   }
 
   async getPlayerStats(playerId: string): Promise<PlayerStats> {
-    const duels = await this.duelRepository.findAll();
+    const [stats, duels] = await Promise.all([
+      this.buildFullRankings(),
+      this.duelRepository.findAll(),
+    ]);
+
     const playerDuels = duels.filter(
       (duel) =>
         duel.playerA?.playerId === playerId || duel.playerB?.playerId === playerId,
     );
 
-    const { characterRanking, playerRanking, recentDuels } = aggregateRankings(playerDuels, {
-      playerId,
-    });
-
     return {
-      playerRanking: playerRanking[0] ?? null,
-      characterRanking,
-      recentDuels,
+      playerRanking:
+        stats.playerRanking.find((entry) => entry.playerId === playerId) ?? null,
+      characterRanking: stats.characterRanking.filter(
+        (entry) => entry.playerId === playerId,
+      ),
+      recentDuels: aggregateRankings(playerDuels, { playerId }).recentDuels,
     };
   }
 
-  private async enrichPlayerNames(
-    ranking: PublicStats['playerRanking'],
-  ): Promise<PublicStats['playerRanking']> {
-    const users = await this.userRepository.findAll();
-    const userMap = new Map(users.map((user) => [user.id, user.displayName]));
+  private async buildFullRankings() {
+    const [duels, users, characters] = await Promise.all([
+      this.duelRepository.findAll(),
+      this.userRepository.findAll(),
+      this.characterRepository.findAll(),
+    ]);
 
-    return ranking.map((entry) => ({
-      ...entry,
-      playerDisplayName: userMap.get(entry.playerId) ?? entry.playerDisplayName,
-    }));
+    const players = users.filter((user) => user.active && hasRole(user, 'player'));
+    const duelRankings = aggregateRankings(duels);
+
+    const characterRanking = mergeCharacterRankings(
+      duelRankings.characterRanking,
+      characters,
+      users,
+    );
+    const playerRanking = buildPlayerRankingsFromCharacters(
+      characterRanking,
+      players,
+      characters,
+    );
+
+    return {
+      characterRanking,
+      playerRanking,
+      recentDuels: duelRankings.recentDuels,
+    };
   }
 
   private buildClassStats(duels: Duel[]): ClassStats[] {

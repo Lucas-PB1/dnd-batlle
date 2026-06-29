@@ -38,4 +38,13 @@ export class DuelFileRepository implements IDuelRepository {
     await this.store.write(this.fileName, duels);
     return duel;
   }
+
+  async delete(id: string): Promise<void> {
+    const duels = await this.findAll();
+    const next = duels.filter((duel) => duel.id !== id);
+    if (next.length === duels.length) {
+      throw new Error('Duelo não encontrado');
+    }
+    await this.store.write(this.fileName, next);
+  }
 }

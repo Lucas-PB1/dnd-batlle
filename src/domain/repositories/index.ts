@@ -15,6 +15,7 @@ export interface ICharacterRepository {
   findByPlayerId(playerId: string): Promise<Character[]>;
   save(character: Character): Promise<Character>;
   update(character: Character): Promise<Character>;
+  delete(id: string): Promise<void>;
 }
 
 export interface IDuelRepository {
@@ -23,4 +24,5 @@ export interface IDuelRepository {
   findByToken(token: string): Promise<Duel | null>;
   save(duel: Duel): Promise<Duel>;
   update(duel: Duel): Promise<Duel>;
+  delete(id: string): Promise<void>;
 }

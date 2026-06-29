@@ -4,7 +4,7 @@ import type {
   IDuelRepository,
   IUserRepository,
 } from '@/domain/repositories';
-import type { Bracket, Duel, DuelOutcome, PlayerEntry } from '@/domain/entities';
+import type { Duel, DuelOutcome, PlayerEntry, UserRole } from '@/domain/entities';
 import { calculateDuelPoints } from '@/domain/services/scoring-service';
 import { EmailService } from '@/application/services/email-service';
 import { BRACKET_BY_CLASS } from '@/shared/constants/game-rules';
@@ -33,9 +33,29 @@ export interface CompleteDuelInput {
   outcome: DuelOutcome;
   rounds: number;
   notes?: string;
+  isClassified?: boolean;
 }
 
-function resolveBracket(characterClass: string): Bracket {
+export interface UpdateDuelInput {
+  duelId: string;
+  actorId: string;
+  roles: UserRole[];
+  isClassified?: boolean;
+  arena?: number;
+  outcome?: DuelOutcome;
+  rounds?: number;
+  notes?: string;
+  pointsA?: number;
+  pointsB?: number;
+}
+
+export interface DeleteDuelInput {
+  duelId: string;
+  actorId: string;
+  roles: UserRole[];
+}
+
+function resolveBracket(characterClass: string) {
   const bracket = BRACKET_BY_CLASS[characterClass];
   if (!bracket) {
     throw new Error('Classe inválida');
@@ -45,6 +65,40 @@ function resolveBracket(characterClass: string): Bracket {
 
 function generateToken(): string {
   return randomUUID().replace(/-/g, '').slice(0, 12);
+}
+
+function canManageDuel(duel: Duel, actorId: string, roles: UserRole[]): boolean {
+  return roles.includes('admin') || (roles.includes('judge') && duel.judgeId === actorId);
+}
+
+function buildResultPoints(
+  duel: Duel,
+  outcome: DuelOutcome,
+  manual?: { pointsA?: number; pointsB?: number },
+) {
+  if (!duel.playerA || !duel.playerB) {
+    throw new Error('Jogadores incompletos');
+  }
+
+  const pointsA =
+    manual?.pointsA ??
+    calculateDuelPoints({
+      bracketA: duel.playerA.bracket,
+      bracketB: duel.playerB.bracket,
+      outcome,
+      forPlayer: 'A',
+    }).points;
+
+  const pointsB =
+    manual?.pointsB ??
+    calculateDuelPoints({
+      bracketA: duel.playerA.bracket,
+      bracketB: duel.playerB.bracket,
+      outcome,
+      forPlayer: 'B',
+    }).points;
+
+  return { pointsA, pointsB };
 }
 
 export class DuelService {
@@ -74,8 +128,17 @@ export class DuelService {
     return this.duelRepository.save(duel);
   }
 
+  async getDuelById(duelId: string): Promise<Duel | null> {
+    return this.duelRepository.findById(duelId);
+  }
+
   async getDuelByToken(token: string): Promise<Duel | null> {
     return this.duelRepository.findByToken(token);
+  }
+
+  async getAllDuels(): Promise<Duel[]> {
+    const duels = await this.duelRepository.findAll();
+    return duels.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }
 
   async getDuelsByJudge(judgeId: string): Promise<Duel[]> {
@@ -91,6 +154,13 @@ export class DuelService {
     if (duel.status === 'completed') throw new Error('Duelo já finalizado');
 
     const player = await this.buildPlayerEntry(input);
+
+    if (input.characterId) {
+      const other = input.slot === 'A' ? duel.playerB : duel.playerA;
+      if (other?.characterId && other.characterId === input.characterId) {
+        throw new Error('Este herói já está inscrito no outro lado da arena');
+      }
+    }
 
     const updated: Duel = {
       ...duel,
@@ -112,23 +182,12 @@ export class DuelService {
     if (!duel.playerA || !duel.playerB) throw new Error('Jogadores incompletos');
     if (duel.status === 'completed') throw new Error('Duelo já finalizado');
 
-    const pointsA = calculateDuelPoints({
-      bracketA: duel.playerA.bracket,
-      bracketB: duel.playerB.bracket,
-      outcome: input.outcome,
-      forPlayer: 'A',
-    }).points;
-
-    const pointsB = calculateDuelPoints({
-      bracketA: duel.playerA.bracket,
-      bracketB: duel.playerB.bracket,
-      outcome: input.outcome,
-      forPlayer: 'B',
-    }).points;
+    const { pointsA, pointsB } = buildResultPoints(duel, input.outcome);
 
     const completed: Duel = {
       ...duel,
       status: 'completed',
+      isClassified: input.isClassified ?? duel.isClassified,
       arena: input.arena,
       result: {
         outcome: input.outcome,
@@ -143,6 +202,64 @@ export class DuelService {
     const saved = await this.duelRepository.update(completed);
     await this.notifyPlayers(saved);
     return saved;
+  }
+
+  async updateDuel(input: UpdateDuelInput): Promise<Duel> {
+    const duel = await this.duelRepository.findById(input.duelId);
+    if (!duel) throw new Error('Duelo não encontrado');
+    if (!canManageDuel(duel, input.actorId, input.roles)) {
+      throw new Error('Sem permissão');
+    }
+
+    if (duel.status !== 'completed' || !duel.result) {
+      if (input.isClassified === undefined) {
+        throw new Error('Apenas duelos selados podem ter glória editada');
+      }
+
+      return this.duelRepository.update({
+        ...duel,
+        isClassified: input.isClassified,
+      });
+    }
+
+    const outcome = input.outcome ?? duel.result.outcome;
+    const rounds = input.rounds ?? duel.result.rounds;
+    const arena = input.arena ?? duel.arena;
+    const hasManualPoints = input.pointsA !== undefined || input.pointsB !== undefined;
+    const { pointsA, pointsB } = buildResultPoints(duel, outcome, {
+      pointsA: input.pointsA,
+      pointsB: input.pointsB,
+    });
+
+    if (hasManualPoints && (input.pointsA === undefined || input.pointsB === undefined)) {
+      throw new Error('Informe a glória de ambos os desafiantes');
+    }
+
+    const updated: Duel = {
+      ...duel,
+      isClassified: input.isClassified ?? duel.isClassified,
+      arena,
+      result: {
+        outcome,
+        rounds,
+        pointsA,
+        pointsB,
+        notes: input.notes ?? duel.result.notes,
+      },
+      completedAt: duel.completedAt ?? new Date().toISOString(),
+    };
+
+    return this.duelRepository.update(updated);
+  }
+
+  async deleteDuel(input: DeleteDuelInput): Promise<void> {
+    const duel = await this.duelRepository.findById(input.duelId);
+    if (!duel) throw new Error('Duelo não encontrado');
+    if (!canManageDuel(duel, input.actorId, input.roles)) {
+      throw new Error('Sem permissão');
+    }
+
+    await this.duelRepository.delete(input.duelId);
   }
 
   private async buildPlayerEntry(input: RegisterPlayerInput): Promise<PlayerEntry> {

@@ -8,6 +8,11 @@ import { Card, CardDescription, CardTitle } from '@/components/ui/card';
 import { Badge, Input, Label, Select } from '@/components/ui/form';
 import type { Character } from '@/domain/entities';
 import { BRACKET_BY_CLASS } from '@/shared/constants/game-rules';
+import {
+  ARENA_COPY,
+  duelStatusLabel,
+  duelTypeLabel,
+} from '@/shared/constants/arena-copy';
 
 interface DuelPublic {
   token: string;
@@ -55,7 +60,7 @@ export default function DuelRegistrationPage() {
       const data = await response.json();
       if (!active) return;
       if (!response.ok) {
-        setError(data.error ?? 'Link inválido');
+        setError(data.error ?? ARENA_COPY.invalidConvocation);
         setLoading(false);
         return;
       }
@@ -107,11 +112,11 @@ export default function DuelRegistrationPage() {
       return;
     }
 
-    setMessage('Inscrição salva com sucesso!');
+    setMessage(ARENA_COPY.enrollmentSaved);
     setDuel(data.duel);
   }
 
-  if (loading) return <p className="text-muted">Carregando duelo...</p>;
+  if (loading) return <p className="text-muted">Convocando a arena...</p>;
   if (error && !duel) return <p className="text-danger">{error}</p>;
   if (!duel) return null;
 
@@ -122,36 +127,41 @@ export default function DuelRegistrationPage() {
   return (
     <div className="mx-auto max-w-xl space-y-6">
       <section className="space-y-2 text-center">
-        <p className="text-accent text-sm tracking-[0.2em] uppercase">Inscrição de duelo</p>
-        <h1 className="text-2xl font-bold sm:text-3xl">Prepare-se para a arena</h1>
-        <p className="text-muted">Juiz: {duel.judgeName}</p>
+        <p className="text-accent text-sm tracking-[0.2em] uppercase">
+          {ARENA_COPY.duelRegistration}
+        </p>
+        <h1 className="text-2xl font-bold sm:text-3xl">{ARENA_COPY.prepareForArena}</h1>
+        <p className="text-muted">
+          {ARENA_COPY.arbiter}: {duel.judgeName}
+        </p>
       </section>
 
       <Card>
         <div className="flex flex-wrap gap-2">
           <Badge tone={duel.isClassified ? 'warning' : 'default'}>
-            {duel.isClassified ? 'Classificado' : 'Amistoso'}
+            {duelTypeLabel(duel.isClassified)}
           </Badge>
-          <Badge>{duel.status}</Badge>
+          <Badge>{duelStatusLabel(duel.status)}</Badge>
         </div>
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           {(['A', 'B'] as const).map((slotKey) => {
             const player = slotKey === 'A' ? duel.playerA : duel.playerB;
+            const corner = slotKey === 'A' ? ARENA_COPY.cornerA : ARENA_COPY.cornerB;
             return (
               <div
                 key={slotKey}
                 className="border-card-border/70 rounded-xl border bg-stone-950/30 p-4"
               >
-                <p className="text-muted text-xs uppercase">Jogador {slotKey}</p>
-                <p className="font-medium">{player?.name ?? 'Vago'}</p>
+                <p className="text-muted text-xs uppercase">{corner}</p>
+                <p className="font-medium">{player?.name ?? ARENA_COPY.challengerVacant}</p>
                 {player && (
                   <>
                     {player.playerDisplayName && (
                       <p className="text-accent text-xs">{player.playerDisplayName}</p>
                     )}
                     <p className="text-muted text-sm">
-                      {player.characterClass} · Faixa {player.bracket}
+                      {player.characterClass} · {ARENA_COPY.bracket} {player.bracket}
                     </p>
                   </>
                 )}
@@ -161,14 +171,12 @@ export default function DuelRegistrationPage() {
         </div>
 
         {duel.status === 'completed' ? (
-          <p className="text-muted mt-4 text-sm">Este duelo já foi finalizado.</p>
+          <p className="text-muted mt-4 text-sm">{ARENA_COPY.duelAlreadySealed}</p>
         ) : (
           <>
-            <CardTitle className="mt-6">Sua inscrição</CardTitle>
+            <CardTitle className="mt-6">{ARENA_COPY.yourEnrollment}</CardTitle>
             <CardDescription>
-              {isPlayer
-                ? 'Escolha um personagem cadastrado ou preencha manualmente'
-                : 'Faça login como jogador para usar personagens cadastrados'}
+              {isPlayer ? ARENA_COPY.enrollmentHintPlayer : ARENA_COPY.enrollmentHintGuest}
             </CardDescription>
 
             {!isPlayer && (
@@ -178,20 +186,20 @@ export default function DuelRegistrationPage() {
                 </Link>{' '}
                 ou{' '}
                 <Link href="/register" className="text-accent hover:underline">
-                  criar conta
+                  inscrever-se no coliseu
                 </Link>
               </p>
             )}
 
             <form onSubmit={submit} className="mt-4 space-y-4">
               <div>
-                <Label>Vaga</Label>
+                <Label>{ARENA_COPY.arenaSide}</Label>
                 <Select
                   value={slot}
                   onChange={(e) => setSlot(e.target.value as 'A' | 'B')}
                 >
-                  <option value="A">Jogador A</option>
-                  <option value="B">Jogador B</option>
+                  <option value="A">{ARENA_COPY.cornerA}</option>
+                  <option value="B">{ARENA_COPY.cornerB}</option>
                 </Select>
               </div>
 
@@ -203,20 +211,20 @@ export default function DuelRegistrationPage() {
                       variant={mode === 'character' ? 'primary' : 'secondary'}
                       onClick={() => setMode('character')}
                     >
-                      Meus personagens
+                      {ARENA_COPY.myHeroes}
                     </Button>
                     <Button
                       type="button"
                       variant={mode === 'manual' ? 'primary' : 'secondary'}
                       onClick={() => setMode('manual')}
                     >
-                      Manual
+                      {ARENA_COPY.manualSheet}
                     </Button>
                   </div>
 
                   {mode === 'character' && (
                     <div>
-                      <Label>Personagem</Label>
+                      <Label>Herói</Label>
                       <Select
                         value={characterId}
                         onChange={(e) => setCharacterId(e.target.value)}
@@ -239,7 +247,7 @@ export default function DuelRegistrationPage() {
                             </p>
                           )}
                           <p className="text-muted mt-1 text-xs">
-                            Faixa {BRACKET_BY_CLASS[selectedCharacter.characterClass]}
+                            {ARENA_COPY.bracket} {BRACKET_BY_CLASS[selectedCharacter.characterClass]}
                           </p>
                         </div>
                       )}
@@ -251,7 +259,7 @@ export default function DuelRegistrationPage() {
               {(mode === 'manual' || !isPlayer || characters.length === 0) && (
                 <>
                   <div>
-                    <Label>Nome do personagem</Label>
+                    <Label>{ARENA_COPY.heroName}</Label>
                     <Input value={name} onChange={(e) => setName(e.target.value)} required />
                   </div>
                   <div>
@@ -267,7 +275,9 @@ export default function DuelRegistrationPage() {
                       ))}
                     </Select>
                     {bracket && (
-                      <p className="text-muted mt-1 text-xs">Faixa automática: {bracket}</p>
+                      <p className="text-muted mt-1 text-xs">
+                        {ARENA_COPY.bracket} automática: {bracket}
+                      </p>
                     )}
                   </div>
                   <div>
@@ -278,7 +288,7 @@ export default function DuelRegistrationPage() {
               )}
 
               <div>
-                <Label>Pontos na temporada (antes do duelo)</Label>
+                <Label>{ARENA_COPY.gloryBeforeDuel}</Label>
                 <Input
                   type="number"
                   min={0}
@@ -292,7 +302,7 @@ export default function DuelRegistrationPage() {
               {message && <p className="text-success text-sm">{message}</p>}
 
               <Button type="submit" className="w-full">
-                Confirmar inscrição
+                {ARENA_COPY.confirmEnrollment}
               </Button>
             </form>
           </>

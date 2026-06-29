@@ -38,4 +38,13 @@ export class CharacterFileRepository implements ICharacterRepository {
     await this.store.write(this.fileName, characters);
     return character;
   }
+
+  async delete(id: string): Promise<void> {
+    const characters = await this.findAll();
+    const next = characters.filter((character) => character.id !== id);
+    if (next.length === characters.length) {
+      throw new Error('Personagem não encontrado');
+    }
+    await this.store.write(this.fileName, next);
+  }
 }

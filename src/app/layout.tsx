@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import { Navbar } from '@/components/layout/navbar';
+import { ARENA_COPY } from '@/shared/constants/arena-copy';
 import './globals.css';
 
 const geistSans = Geist({
@@ -14,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Arena Duel — Ranking D&D 5.5',
-  description: 'Sistema de duelos 1v1, ranking e gestão de juízes',
+  title: `${ARENA_COPY.siteName} — D&D 5.5`,
+  description: 'Duelos 1v1, panteão de glória e crônicas do coliseu',
 };
 
 export const viewport: Viewport = {
@@ -33,7 +34,7 @@ export default function RootLayout({
     <html lang="pt-BR">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <Navbar />
-        <main className="mx-auto max-w-6xl px-4 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-6 sm:py-8">
+        <main className="mx-auto max-w-6xl px-4 py-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:px-6 sm:py-5">
           {children}
         </main>
       </body>

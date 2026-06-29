@@ -89,4 +89,15 @@ export class CharacterPostgresRepository implements ICharacterRepository {
 
     return mapCharacterRow(row);
   }
+
+  async delete(id: string): Promise<void> {
+    const sql = await this.ready();
+    const rows = (await sql`
+      DELETE FROM characters WHERE id = ${id} RETURNING id
+    `) as { id: string }[];
+
+    if (!rows[0]) {
+      throw new Error('Personagem não encontrado');
+    }
+  }
 }

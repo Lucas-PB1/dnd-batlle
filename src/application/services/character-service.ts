@@ -31,7 +31,8 @@ export class CharacterService {
   constructor(private readonly characterRepository: ICharacterRepository) {}
 
   async listByPlayer(playerId: string): Promise<Character[]> {
-    return this.characterRepository.findByPlayerId(playerId);
+    const characters = await this.characterRepository.findByPlayerId(playerId);
+    return characters.filter((character) => character.active);
   }
 
   async create(input: CreateCharacterInput): Promise<Character> {
@@ -87,6 +88,19 @@ export class CharacterService {
     };
 
     return this.characterRepository.update(updated);
+  }
+
+  async delete(characterId: string, playerId: string): Promise<void> {
+    const character = await this.characterRepository.findById(characterId);
+    if (!character || character.playerId !== playerId) {
+      throw new Error('Personagem não encontrado');
+    }
+
+    if (!character.active) {
+      throw new Error('Personagem já removido');
+    }
+
+    await this.characterRepository.update({ ...character, active: false });
   }
 }
 

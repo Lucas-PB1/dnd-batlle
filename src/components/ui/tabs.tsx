@@ -31,7 +31,7 @@ export function Tabs({ tabs, activeId, onChange, className }: TabsProps) {
           aria-selected={activeId === tab.id}
           onClick={() => onChange(tab.id)}
           className={cn(
-            'min-h-11 snap-start rounded-lg px-3 py-2 text-sm font-medium whitespace-nowrap transition',
+            'min-h-9 snap-start rounded-lg px-2.5 py-1.5 text-xs font-medium whitespace-nowrap transition sm:text-sm',
             activeId === tab.id
               ? 'bg-accent text-stone-950 shadow-sm'
               : 'text-muted hover:text-foreground hover:bg-white/5',

@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardTitle } from '@/components/ui/card';
 import { Input, Label } from '@/components/ui/form';
+import { ARENA_COPY } from '@/shared/constants/arena-copy';
 import { primaryRedirectRole } from '@/shared/utils/roles';
 
 export default function LoginPage() {
@@ -30,7 +31,7 @@ export default function LoginPage() {
     setLoading(false);
 
     if (!response.ok) {
-      setError(data.error ?? 'Falha no login');
+      setError(data.error ?? ARENA_COPY.loginFailed);
       return;
     }
 
@@ -39,14 +40,17 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="mx-auto max-w-md">
+    <div className="mx-auto max-w-md space-y-2">
+      <p className="text-accent text-center text-sm tracking-[0.2em] uppercase">
+        {ARENA_COPY.siteTagline}
+      </p>
       <Card>
-        <CardTitle>Entrar</CardTitle>
-        <CardDescription>Admin, juiz ou jogador — use e-mail e senha</CardDescription>
+        <CardTitle>{ARENA_COPY.loginTitle}</CardTitle>
+        <CardDescription>{ARENA_COPY.loginSubtitle}</CardDescription>
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <div>
-            <Label>E-mail ou usuário</Label>
+            <Label>{ARENA_COPY.loginIdentifier}</Label>
             <Input
               autoComplete="username"
               value={identifier}
@@ -54,7 +58,7 @@ export default function LoginPage() {
             />
           </div>
           <div>
-            <Label>Senha</Label>
+            <Label>{ARENA_COPY.loginPassword}</Label>
             <Input
               type="password"
               autoComplete="current-password"
@@ -66,19 +70,17 @@ export default function LoginPage() {
           {error && <p className="text-danger text-sm">{error}</p>}
 
           <Button type="submit" disabled={loading} className="w-full">
-            {loading ? 'Entrando...' : 'Entrar'}
+            {loading ? ARENA_COPY.loginSubmitting : ARENA_COPY.loginSubmit}
           </Button>
         </form>
 
         <p className="text-muted mt-4 text-sm">
-          Novo jogador?{' '}
+          {ARENA_COPY.loginNewAdventurer}{' '}
           <Link href="/register" className="text-accent hover:underline">
-            Criar conta
+            {ARENA_COPY.loginRegisterLink}
           </Link>
         </p>
-        <p className="text-muted mt-2 text-xs">
-          Primeiro acesso admin: admin / admin123 ou admin@arena.local
-        </p>
+        <p className="text-muted mt-2 text-xs">{ARENA_COPY.loginAdminHint}</p>
       </Card>
     </div>
   );

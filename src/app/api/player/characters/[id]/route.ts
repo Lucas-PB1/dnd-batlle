@@ -30,3 +30,17 @@ export async function PATCH(
     return handleApiError(error);
   }
 }
+
+export async function DELETE(
+  _request: Request,
+  context: { params: Promise<{ id: string }> },
+) {
+  try {
+    const session = await requireSession(['player']);
+    const { id } = await context.params;
+    await ServiceFactory.create().getCharacterService().delete(id, session.userId);
+    return jsonOk({ ok: true });
+  } catch (error) {
+    return handleApiError(error);
+  }
+}

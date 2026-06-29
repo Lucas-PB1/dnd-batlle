@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/cn';
+import { ARENA_COPY } from '@/shared/constants/arena-copy';
 
 interface Session {
   username: string;
@@ -85,19 +86,19 @@ export function Navbar() {
   }
 
   const publicLinks: NavLink[] = [
-    { href: '/', label: 'Ranking', active: pathname === '/' },
+    { href: '/', label: 'Coliseu', active: pathname === '/' },
     { href: '/regras', label: 'Regras', active: pathname === '/regras' },
   ];
 
   const roleLinks: NavLink[] = [
     ...(session?.roles?.includes('player')
-      ? [{ href: '/player', label: 'Meu painel', active: pathname.startsWith('/player') }]
+      ? [{ href: '/player', label: ARENA_COPY.navSanctum, active: pathname.startsWith('/player') }]
       : []),
     ...(session?.roles?.includes('judge')
-      ? [{ href: '/judge', label: 'Juiz', active: pathname.startsWith('/judge') }]
+      ? [{ href: '/judge', label: ARENA_COPY.navArbiter, active: pathname.startsWith('/judge') }]
       : []),
     ...(session?.roles?.includes('admin')
-      ? [{ href: '/admin', label: 'Admin', active: pathname.startsWith('/admin') }]
+      ? [{ href: '/admin', label: ARENA_COPY.navCouncil, active: pathname.startsWith('/admin') }]
       : []),
   ];
 
@@ -105,14 +106,14 @@ export function Navbar() {
 
   return (
     <header className="border-card-border/80 bg-background/80 sticky top-0 z-50 border-b backdrop-blur-md">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:py-4">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-3 py-2 sm:px-4">
         <Link href="/" className="group flex min-w-0 shrink items-center gap-2 sm:gap-3">
           <span className="bg-accent/15 text-accent ring-accent/30 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1">
             ⚔
           </span>
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold tracking-wide">Arena Duel</p>
-            <p className="text-muted hidden text-xs sm:block">D&D 5.5 · Ranking</p>
+            <p className="truncate text-sm font-semibold tracking-wide">{ARENA_COPY.siteName}</p>
+            <p className="text-muted hidden text-xs sm:block">D&D 5.5 · Coliseu</p>
           </div>
         </Link>
 
@@ -122,12 +123,12 @@ export function Navbar() {
             <div className="border-card-border ml-2 flex items-center gap-2 border-l pl-3">
               <span className="text-muted hidden text-sm lg:inline">{session.displayName}</span>
               <Button variant="ghost" onClick={logout}>
-                Sair
+                {ARENA_COPY.navLogout}
               </Button>
             </div>
           ) : (
             <Link href="/login" className="ml-1">
-              <Button variant="secondary">Entrar</Button>
+              <Button variant="secondary">{ARENA_COPY.navLogin}</Button>
             </Link>
           )}
         </nav>
@@ -183,13 +184,13 @@ export function Navbar() {
                 <div className="space-y-3">
                   <p className="text-muted text-sm">{session.displayName}</p>
                   <Button variant="ghost" className="w-full" onClick={logout}>
-                    Sair
+                    {ARENA_COPY.navLogout}
                   </Button>
                 </div>
               ) : (
                 <Link href="/login" onClick={closeMenu}>
                   <Button variant="secondary" className="w-full">
-                    Entrar
+                    {ARENA_COPY.navLogin}
                   </Button>
                 </Link>
               )}

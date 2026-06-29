@@ -90,4 +90,15 @@ export class DuelPostgresRepository implements IDuelRepository {
 
     return mapDuelRow(row);
   }
+
+  async delete(id: string): Promise<void> {
+    const sql = await this.ready();
+    const rows = (await sql`
+      DELETE FROM duels WHERE id = ${id} RETURNING id
+    `) as { id: string }[];
+
+    if (!rows[0]) {
+      throw new Error('Duelo não encontrado');
+    }
+  }
 }

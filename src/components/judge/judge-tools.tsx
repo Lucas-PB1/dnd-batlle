@@ -8,6 +8,7 @@ import { calculateDuelPoints } from '@/domain/services/scoring-service';
 import { rollD20, rollD6 } from '@/lib/dice';
 import { ARENAS } from '@/shared/constants/game-rules';
 import { RULES_SECTIONS } from '@/shared/constants/rules-guide';
+import { ARENA_COPY } from '@/shared/constants/arena-copy';
 
 interface JudgeToolsProps {
   duel: Duel;
@@ -66,15 +67,15 @@ export function JudgeTools({ duel, arena, outcome, onArenaChange }: JudgeToolsPr
   return (
     <div className="space-y-4">
       <Card>
-        <CardTitle>Ferramentas do juiz</CardTitle>
-        <CardDescription>Sorteios e preview antes de registrar</CardDescription>
+        <CardTitle>{ARENA_COPY.judgeTools}</CardTitle>
+        <CardDescription>{ARENA_COPY.judgeToolsHint}</CardDescription>
 
         <div className="mt-4 space-y-4">
           <div className="border-card-border/70 rounded-xl border bg-stone-950/30 p-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium">Sortear arena (d6)</p>
-                <p className="text-muted text-xs">Preenche o campo de arena automaticamente</p>
+                <p className="text-sm font-medium">{ARENA_COPY.rollArena}</p>
+                <p className="text-muted text-xs">{ARENA_COPY.rollArenaHint}</p>
               </div>
               <Button type="button" variant="secondary" className="w-full sm:w-auto" onClick={rollArena}>
                 🎲 Rolar d6
@@ -93,8 +94,8 @@ export function JudgeTools({ duel, arena, outcome, onArenaChange }: JudgeToolsPr
           <div className="border-card-border/70 rounded-xl border bg-stone-950/30 p-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium">Iniciativa (d20)</p>
-                <p className="text-muted text-xs">Empate = reroll manual</p>
+                <p className="text-sm font-medium">{ARENA_COPY.rollInitiative}</p>
+                <p className="text-muted text-xs">{ARENA_COPY.rollInitiativeHint}</p>
               </div>
               <Button type="button" variant="secondary" className="w-full sm:w-auto" onClick={rollInitiative}>
                 🎲 Rolar ambos
@@ -103,11 +104,11 @@ export function JudgeTools({ duel, arena, outcome, onArenaChange }: JudgeToolsPr
             {(initiativeA !== null || initiativeB !== null) && (
               <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
                 <div className="rounded-lg bg-stone-950/60 px-3 py-2">
-                  <p className="text-muted text-xs">Jogador A</p>
+                  <p className="text-muted text-xs">{ARENA_COPY.cornerA}</p>
                   <p className="font-semibold">{initiativeA ?? '—'}</p>
                 </div>
                 <div className="rounded-lg bg-stone-950/60 px-3 py-2">
-                  <p className="text-muted text-xs">Jogador B</p>
+                  <p className="text-muted text-xs">{ARENA_COPY.cornerB}</p>
                   <p className="font-semibold">{initiativeB ?? '—'}</p>
                 </div>
               </div>
@@ -116,29 +117,29 @@ export function JudgeTools({ duel, arena, outcome, onArenaChange }: JudgeToolsPr
 
           {pointsPreview && duel.isClassified && (
             <div className="border-card-border/70 rounded-xl border bg-stone-950/30 p-4">
-              <p className="text-sm font-medium">Preview de pontos (classificado)</p>
+              <p className="text-sm font-medium">{ARENA_COPY.gloryPreview}</p>
               <div className="mt-2 flex flex-wrap gap-3 text-sm">
                 <span>
                   {duel.playerA?.name}:{' '}
-                  <strong className="text-accent">+{pointsPreview.a}</strong>
+                  <strong className="text-accent">+{pointsPreview.a} {ARENA_COPY.gloryShort}</strong>
                 </span>
                 <span>
                   {duel.playerB?.name}:{' '}
-                  <strong className="text-accent">+{pointsPreview.b}</strong>
+                  <strong className="text-accent">+{pointsPreview.b} {ARENA_COPY.gloryShort}</strong>
                 </span>
               </div>
             </div>
           )}
 
           {!duel.isClassified && (
-            <p className="text-muted text-xs">Duelo amistoso — sem pontos no ranking.</p>
+            <p className="text-muted text-xs">{ARENA_COPY.friendlyNoGlory}</p>
           )}
         </div>
       </Card>
 
       <Card>
-        <CardTitle>Checklist</CardTitle>
-        <CardDescription>Passos antes de finalizar</CardDescription>
+        <CardTitle>{ARENA_COPY.checklist}</CardTitle>
+        <CardDescription>{ARENA_COPY.checklistHint}</CardDescription>
         <ul className="mt-4 space-y-2">
           {RULES_SECTIONS.judgeChecklist.steps.map((step, index) => (
             <li key={step}>

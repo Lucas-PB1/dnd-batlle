@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardTitle } from '@/components/ui/card';
 import { Input, Label } from '@/components/ui/form';
+import { ARENA_COPY } from '@/shared/constants/arena-copy';
 import { primaryRedirectRole } from '@/shared/utils/roles';
 
 export default function RegisterPage() {
@@ -29,7 +30,7 @@ export default function RegisterPage() {
     setLoading(false);
 
     if (!response.ok) {
-      setError(data.error ?? 'Falha no cadastro');
+      setError(data.error ?? ARENA_COPY.registerFailed);
       return;
     }
 
@@ -38,16 +39,17 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="mx-auto max-w-md">
+    <div className="mx-auto max-w-md space-y-2">
+      <p className="text-accent text-center text-sm tracking-[0.2em] uppercase">
+        {ARENA_COPY.siteTagline}
+      </p>
       <Card>
-        <CardTitle>Criar conta de jogador</CardTitle>
-        <CardDescription>
-          Cadastre-se para gerenciar personagens e acompanhar seu ranking
-        </CardDescription>
+        <CardTitle>{ARENA_COPY.registerTitle}</CardTitle>
+        <CardDescription>{ARENA_COPY.registerSubtitle}</CardDescription>
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <div>
-            <Label>Nome</Label>
+            <Label>{ARENA_COPY.adventurerName}</Label>
             <Input
               value={form.displayName}
               onChange={(e) => setForm({ ...form, displayName: e.target.value })}
@@ -65,7 +67,7 @@ export default function RegisterPage() {
             />
           </div>
           <div>
-            <Label>Senha</Label>
+            <Label>{ARENA_COPY.loginPassword}</Label>
             <Input
               type="password"
               autoComplete="new-password"
@@ -78,14 +80,14 @@ export default function RegisterPage() {
           {error && <p className="text-danger text-sm">{error}</p>}
 
           <Button type="submit" disabled={loading} className="w-full">
-            {loading ? 'Cadastrando...' : 'Cadastrar'}
+            {loading ? ARENA_COPY.registerSubmitting : ARENA_COPY.registerSubmit}
           </Button>
         </form>
 
         <p className="text-muted mt-4 text-sm">
-          Já tem conta?{' '}
+          {ARENA_COPY.registerHasAccount}{' '}
           <Link href="/login" className="text-accent hover:underline">
-            Entrar
+            {ARENA_COPY.registerLoginLink}
           </Link>
         </p>
       </Card>

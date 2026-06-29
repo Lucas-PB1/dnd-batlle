@@ -44,3 +44,9 @@ body {
 ::selection {
   background: rgba(217, 119, 6, 0.35);
 }
+
+.ranking-hero {
+  background:
+    linear-gradient(135deg, rgba(28, 25, 23, 0.95), rgba(12, 10, 9, 0.98)),
+    radial-gradient(circle at top, rgba(217, 119, 6, 0.08), transparent 55%);
+}
