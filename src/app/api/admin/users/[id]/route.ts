@@ -10,6 +10,7 @@ const updateUserSchema = z.object({
   active: z.boolean().optional(),
   password: z.string().min(4).optional(),
   resetPassword: z.boolean().optional(),
+  restore: z.boolean().optional(),
 });
 
 export async function PATCH(
@@ -27,6 +28,11 @@ export async function PATCH(
 
     const adminService = ServiceFactory.create().getAdminService();
 
+    if (body.restore) {
+      const user = await adminService.restoreUser(id);
+      return jsonOk({ user });
+    }
+
     if (body.resetPassword) {
       if (!body.password) {
         return handleApiError(new Error('Informe a nova senha'));
@@ -42,6 +48,24 @@ export async function PATCH(
       active: body.active,
       password: body.password,
     });
+
+    return jsonOk({ user });
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
+
+export async function DELETE(
+  _request: Request,
+  context: { params: Promise<{ id: string }> },
+) {
+  try {
+    const session = await requireSession(['admin']);
+    const { id } = await context.params;
+
+    const user = await ServiceFactory.create()
+      .getAdminService()
+      .deleteUser(session.userId, id);
 
     return jsonOk({ user });
   } catch (error) {

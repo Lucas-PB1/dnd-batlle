@@ -14,6 +14,8 @@ export interface User {
   roles: UserRole[];
   displayName: string;
   active: boolean;
+  deletedAt?: string;
+  archivedEmail?: string;
   createdAt: string;
 }
 

@@ -22,6 +22,8 @@ interface AdminUser {
   displayName: string;
   roles: UserRole[];
   active: boolean;
+  deletedAt?: string;
+  archivedEmail?: string;
 }
 
 interface AdminCharacter extends Character {
@@ -106,10 +108,12 @@ export default function AdminPage() {
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState('');
+  const [showRemovedUsers, setShowRemovedUsers] = useState(false);
 
-  async function loadAll() {
+  async function loadAll(includeRemoved = showRemovedUsers) {
     const [usersRes, charactersRes, duelsRes] = await Promise.all([
-      fetch('/api/admin/users'),
+      fetch(`/api/admin/users${includeRemoved ? '?all=1' : ''}`),
       fetch('/api/admin/characters?all=1'),
       fetch('/api/admin/duels'),
     ]);
@@ -134,7 +138,9 @@ export default function AdminPage() {
         return;
       }
 
-      await loadAll();
+      setCurrentUserId(me.session.userId);
+
+      await loadAll(false);
       if (!active) return;
       setLoading(false);
     }
@@ -237,6 +243,43 @@ export default function AdminPage() {
 
     setUserDraft((draft) => ({ ...draft, password: '' }));
     setMessage(ARENA_COPY.passwordResetDone);
+  }
+
+  async function removeUser(id: string) {
+    if (!window.confirm(ARENA_COPY.confirmDeleteUser)) return;
+    setError('');
+    setMessage('');
+
+    const response = await fetch(`/api/admin/users/${id}`, { method: 'DELETE' });
+    const data = await response.json();
+    if (!response.ok) {
+      setError(data.error ?? 'Erro ao remover conta');
+      return;
+    }
+
+    if (editingUser?.id === id) setEditingUser(null);
+    setMessage(ARENA_COPY.userRemoved);
+    await loadAll();
+  }
+
+  async function restoreUser(id: string) {
+    setError('');
+    setMessage('');
+
+    const response = await fetch(`/api/admin/users/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ restore: true }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      setError(data.error ?? 'Erro ao restaurar conta');
+      return;
+    }
+
+    setMessage(ARENA_COPY.userRestored);
+    await loadAll();
   }
 
   function startEditCharacter(character: AdminCharacter) {
@@ -361,7 +404,21 @@ export default function AdminPage() {
           </Card>
 
           <Card>
-            <CardTitle>{ARENA_COPY.userRoster}</CardTitle>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <CardTitle>{ARENA_COPY.userRoster}</CardTitle>
+              <label className="text-muted inline-flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={showRemovedUsers}
+                  onChange={(e) => {
+                    setShowRemovedUsers(e.target.checked);
+                    void loadAll(e.target.checked);
+                  }}
+                  className="accent-accent"
+                />
+                {ARENA_COPY.showRemovedUsers}
+              </label>
+            </div>
             <div className="mt-4 max-h-[32rem] space-y-3 overflow-y-auto">
               {users.map((user) => (
                 <div
@@ -371,21 +428,45 @@ export default function AdminPage() {
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="font-medium">{user.displayName}</p>
-                      <p className="text-muted text-sm">{user.email ?? `@${user.username}`}</p>
+                      <p className="text-muted text-sm">
+                        {user.deletedAt
+                          ? user.archivedEmail ?? user.email ?? `@${user.username}`
+                          : (user.email ?? `@${user.username}`)}
+                      </p>
                       <div className="mt-2 flex flex-wrap gap-1.5">
                         {user.roles.map((role) => (
                           <Badge key={role} tone="default">
                             {ROLE_OPTIONS.find((item) => item.id === role)?.label ?? role}
                           </Badge>
                         ))}
-                        <Badge tone={user.active ? 'success' : 'warning'}>
-                          {user.active ? ARENA_COPY.statusActive : ARENA_COPY.statusInactive}
-                        </Badge>
+                        {user.deletedAt ? (
+                          <Badge tone="warning">{ARENA_COPY.statusRemoved}</Badge>
+                        ) : (
+                          <Badge tone={user.active ? 'success' : 'warning'}>
+                            {user.active ? ARENA_COPY.statusActive : ARENA_COPY.statusInactive}
+                          </Badge>
+                        )}
                       </div>
                     </div>
-                    <Button variant="secondary" onClick={() => startEditUser(user)}>
-                      {ARENA_COPY.edit}
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                      {!user.deletedAt && (
+                        <>
+                          <Button variant="secondary" onClick={() => startEditUser(user)}>
+                            {ARENA_COPY.edit}
+                          </Button>
+                          {currentUserId !== user.id && (
+                            <Button variant="ghost" onClick={() => void removeUser(user.id)}>
+                              {ARENA_COPY.delete}
+                            </Button>
+                          )}
+                        </>
+                      )}
+                      {user.deletedAt && (
+                        <Button variant="secondary" onClick={() => void restoreUser(user.id)}>
+                          {ARENA_COPY.restoreAccount}
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -446,6 +527,11 @@ export default function AdminPage() {
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
                 <Button onClick={() => void saveUser()}>{ARENA_COPY.save}</Button>
+                {currentUserId !== editingUser.id && (
+                  <Button variant="ghost" onClick={() => void removeUser(editingUser.id)}>
+                    {ARENA_COPY.delete}
+                  </Button>
+                )}
                 <Button variant="ghost" onClick={() => setEditingUser(null)}>
                   {ARENA_COPY.cancel}
                 </Button>

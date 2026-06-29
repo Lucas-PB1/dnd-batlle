@@ -51,6 +51,8 @@ export class UserPostgresRepository implements IUserRepository {
         role,
         display_name,
         active,
+        deleted_at,
+        archived_email,
         created_at
       ) VALUES (
         ${user.id},
@@ -61,6 +63,8 @@ export class UserPostgresRepository implements IUserRepository {
         ${user.roles[0] ?? 'player'},
         ${user.displayName},
         ${user.active},
+        ${user.deletedAt ?? null},
+        ${user.archivedEmail ?? null},
         ${user.createdAt}
       )
     `;
@@ -79,6 +83,8 @@ export class UserPostgresRepository implements IUserRepository {
         role = ${user.roles[0] ?? 'player'},
         display_name = ${user.displayName},
         active = ${user.active},
+        deleted_at = ${user.deletedAt ?? null},
+        archived_email = ${user.archivedEmail ?? null},
         created_at = ${user.createdAt}
       WHERE id = ${user.id}
       RETURNING *

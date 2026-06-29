@@ -37,9 +37,10 @@ export class AdminService {
     private readonly emailService: EmailService,
   ) {}
 
-  async listUsers(): Promise<Omit<User, 'passwordHash'>[]> {
+  async listUsers(includeRemoved = false): Promise<Omit<User, 'passwordHash'>[]> {
     const users = await this.userRepository.findAll();
-    return users.map(withoutPasswordHash);
+    const filtered = includeRemoved ? users : users.filter((user) => !user.deletedAt);
+    return filtered.map(withoutPasswordHash);
   }
 
   async listJudges(): Promise<Omit<User, 'passwordHash'>[]> {
@@ -50,7 +51,7 @@ export class AdminService {
   async createUser(input: CreateUserInput): Promise<Omit<User, 'passwordHash'>> {
     const email = input.email.trim().toLowerCase();
     const existingEmail = await this.userRepository.findByEmail(email);
-    if (existingEmail) {
+    if (existingEmail && !existingEmail.deletedAt) {
       throw new Error('E-mail já existe');
     }
 
@@ -99,6 +100,7 @@ export class AdminService {
       email: input.email?.trim().toLowerCase() ?? user.email,
       roles,
       active: input.active ?? user.active,
+      deletedAt: user.deletedAt,
       passwordHash: input.password
         ? await bcrypt.hash(input.password, 10)
         : user.passwordHash,
@@ -140,6 +142,76 @@ export class AdminService {
     const user = await this.updateUser(userId, { password });
     await this.emailService.sendPasswordResetNotification(user.email, user.displayName, password);
     return user;
+  }
+
+  async deleteUser(actorId: string, userId: string): Promise<Omit<User, 'passwordHash'>> {
+    if (actorId === userId) {
+      throw new Error('Você não pode remover sua própria conta');
+    }
+
+    const user = await this.userRepository.findById(userId);
+    if (!user) {
+      throw new Error('Usuário não encontrado');
+    }
+    if (user.deletedAt) {
+      throw new Error('Conta já removida');
+    }
+
+    const activeAdmins = (await this.userRepository.findAll()).filter(
+      (item) => item.roles.includes('admin') && item.active && !item.deletedAt,
+    );
+    if (user.roles.includes('admin') && activeAdmins.length <= 1) {
+      throw new Error('Não é possível remover o último administrador ativo');
+    }
+
+    const characters = await this.characterRepository.findByPlayerId(userId);
+    await Promise.all(
+      characters
+        .filter((character) => character.active)
+        .map((character) =>
+          this.characterRepository.update({ ...character, active: false }),
+        ),
+    );
+
+    const removed: User = {
+      ...user,
+      active: false,
+      deletedAt: new Date().toISOString(),
+      archivedEmail: user.email,
+      email: `removed+${user.id}@arena.local`,
+      username: `removed-${user.id.slice(0, 8)}`,
+      displayName: user.displayName,
+    };
+
+    const saved = await this.userRepository.update(removed);
+    return withoutPasswordHash(saved);
+  }
+
+  async restoreUser(userId: string): Promise<Omit<User, 'passwordHash'>> {
+    const user = await this.userRepository.findById(userId);
+    if (!user) {
+      throw new Error('Usuário não encontrado');
+    }
+    if (!user.deletedAt) {
+      throw new Error('Conta não está removida');
+    }
+
+    const email = user.archivedEmail ?? user.email;
+    const emailTaken = await this.userRepository.findByEmail(email);
+    if (emailTaken && emailTaken.id !== userId && !emailTaken.deletedAt) {
+      throw new Error('O e-mail original já está em uso por outra conta');
+    }
+
+    const restored: User = {
+      ...user,
+      active: true,
+      deletedAt: undefined,
+      email,
+      archivedEmail: undefined,
+    };
+
+    const saved = await this.userRepository.update(restored);
+    return withoutPasswordHash(saved);
   }
 
   async toggleJudgeActive(

@@ -386,4 +386,36 @@ describe('DuelService integration', () => {
 
     expect(updated.name).toBe('New Name');
   });
+
+  it('soft deletes user and blocks login', async () => {
+    const factory = ServiceFactory.create(dataDir);
+    const authService = factory.getAuthService();
+    const adminService = factory.getAdminService();
+
+    await authService.ensureDefaultAdmin();
+    const admin = (await adminService.listUsers(true)).find((user) => user.roles.includes('admin'));
+    if (!admin) throw new Error('Admin not found');
+
+    const player = await authService.register({
+      email: 'delete-me@test.local',
+      password: '1234',
+      displayName: 'Delete Me',
+    });
+
+    await adminService.deleteUser(admin.id, player.id);
+
+    const login = await authService.login('delete-me@test.local', '1234');
+    expect(login).toBeNull();
+
+    const removed = (await adminService.listUsers(true)).find((user) => user.id === player.id);
+    expect(removed?.deletedAt).toBeTruthy();
+    expect(removed?.active).toBe(false);
+
+    const restored = await adminService.restoreUser(player.id);
+    expect(restored.deletedAt).toBeUndefined();
+    expect(restored.email).toBe('delete-me@test.local');
+
+    const loginAgain = await authService.login('delete-me@test.local', '1234');
+    expect(loginAgain?.session.userId).toBe(player.id);
+  });
 });

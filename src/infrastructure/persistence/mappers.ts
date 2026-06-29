@@ -10,6 +10,8 @@ export interface UserRow {
   roles?: UserRole[] | string | null;
   display_name: string;
   active: boolean;
+  deleted_at?: string | Date | null;
+  archived_email?: string | null;
   created_at: string | Date;
 }
 
@@ -68,6 +70,8 @@ export function mapUserRow(row: UserRow): User {
     roles: parseRoles(row),
     displayName: row.display_name,
     active: row.active,
+    deletedAt: row.deleted_at ? toIsoString(row.deleted_at) : undefined,
+    archivedEmail: row.archived_email ?? undefined,
     createdAt: toIsoString(row.created_at),
   };
 }

@@ -58,7 +58,7 @@ export class AuthService {
     }
 
     const existing = await this.userRepository.findByEmail(email);
-    if (existing) {
+    if (existing && !existing.deletedAt) {
       throw new Error('E-mail já cadastrado');
     }
 
@@ -94,7 +94,7 @@ export class AuthService {
         ? await this.userRepository.findByUsername(DEFAULT_ADMIN_USERNAME)
         : null);
 
-    if (!user || !user.active) return null;
+    if (!user || !user.active || user.deletedAt) return null;
 
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) return null;

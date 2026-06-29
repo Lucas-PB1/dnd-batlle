@@ -3,10 +3,11 @@ import { requireSession } from '@/lib/auth';
 import { handleApiError, jsonOk } from '@/lib/api-response';
 import { ServiceFactory } from '@/infrastructure/factories/service-factory';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     await requireSession(['admin']);
-    const users = await ServiceFactory.create().getAdminService().listUsers();
+    const includeRemoved = new URL(request.url).searchParams.get('all') === '1';
+    const users = await ServiceFactory.create().getAdminService().listUsers(includeRemoved);
     return jsonOk({ users });
   } catch (error) {
     return handleApiError(error);
